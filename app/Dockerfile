@@ -41,7 +41,15 @@ RUN useradd \
     appuser
 
 COPY --from=builder /app/.venv /app/.venv
-COPY --chown=appuser:appuser main.py .
+
+COPY --chown=appuser:appuser \
+    main.py \
+    alembic.ini \
+    ./
+
+COPY --chown=appuser:appuser \
+    alembic \
+    ./alembic
 
 USER appuser
 
