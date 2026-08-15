@@ -75,7 +75,6 @@ DbSession = Annotated[Session, Depends(get_db)]
 # FastAPIアプリケーションのライフサイクルイベントを定義
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
     yield
     engine.dispose()
 
