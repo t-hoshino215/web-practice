@@ -3,9 +3,18 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import DateTime, String, create_engine, func, select, text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    String,
+    create_engine,
+    false,
+    func,
+    select,
+    text,
+)
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -41,9 +50,15 @@ class Base(DeclarativeBase):
 # messageテーブルのモデルを定義
 class Message(Base):
     __tablename__ = "messages"
-
+    # テーブルのカラムを定義
     id: Mapped[int] = mapped_column(primary_key=True)
     text: Mapped[str] = mapped_column(String(255))
+    is_archived: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,  # SQLAlchemyのデフォルト値を設定
+        server_default=false(), # PostgreSQLのデフォルト値を設定 (列追加時に既存の行に対しても適用される)
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -58,6 +73,7 @@ class MessageRead(BaseModel):
 
     id: int
     text: str
+    is_archived: bool
     created_at: datetime
 
 # ----------------------------------------------
@@ -109,6 +125,7 @@ def db_health(db: DbSession):
     }
 
 
+# メッセージを作成するAPIエンドポイントを追加
 @app.post(
     "/messages",
     response_model=MessageRead,
@@ -127,6 +144,7 @@ def create_message(
     return message
 
 
+# メッセージ一覧を取得するAPIエンドポイントを追加
 @app.get(
     "/messages",
     response_model=list[MessageRead],
@@ -135,3 +153,28 @@ def list_messages(db: DbSession):
     statement = select(Message).order_by(Message.id)
 
     return list(db.scalars(statement))
+
+
+# アーカイブ確認用APIエンドポイントを追加
+@app.patch(
+    "/messages/{message_id}/archive",
+    response_model=MessageRead,
+)
+def archive_message(
+    message_id: int,
+    db: DbSession,
+):
+    message = db.get(Message, message_id)
+
+    if message is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Message not found",
+        )
+
+    message.is_archived = True
+
+    db.commit()
+    db.refresh(message)
+
+    return message
