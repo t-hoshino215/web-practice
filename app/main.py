@@ -1,14 +1,17 @@
+import hashlib
 import os
+import secrets
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone, UTC
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Cookie, Depends, FastAPI, HTTPException, Response, status
 from pwdlib import PasswordHash
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import (
     Boolean,
     DateTime,
+    ForeignKey,
     String,
     create_engine,
     false,
@@ -26,22 +29,81 @@ from sqlalchemy.orm import (
 )
 
 # ----------------------------------------------
+# Session/Cookieの設定
+# ----------------------------------------------
+
+SESSION_COOKIE_NAME = "session"
+SESSION_LIFETIME = timedelta(days=7)
+
+# CookieのSecure属性を有効にするかどうかを環境変数から取得する。(localhost環境ではfalse、本番(公開HTTPS)環境ではtrueにする想定)
+COOKIE_SECURE = os.getenv(
+    "COOKIE_SECURE",
+    "false",
+).lower() in {"1", "true", "yes", "on"}
+
+
+# ----------------------------------------------
 # パスワードハッシュの設定
 # ----------------------------------------------
 
 password_hasher = PasswordHash.recommended()
 
-
-# 平文パスワードから、安全にDBへ保存するためのパスワードハッシュを生成する。
 def hash_password(password: str) -> str:
+    """
+    平文パスワードから、DBへ保存するための安全なパスワードハッシュを生成する。
+    """
     return password_hasher.hash(password)
+
+
+def verify_password(
+    password: str,
+    password_hash: str,
+) -> bool:
+    """
+    入力された平文パスワードがDBへ保存されているパスワードハッシュと一致するか検証する。
+    """
+    return password_hasher.verify(
+        password,
+        password_hash,
+    )
+
+
+# ----------------------------------------------
+# Session Tokenの生成
+# ----------------------------------------------
+
+def generate_session_token() -> str:
+    """
+    推測困難なランダムなセッショントークンを生成する。
+    この値そのものはCookieへ保存するが、DBには保存しない。
+    """
+    return secrets.token_urlsafe(32)
+
+
+def hash_session_token(token: str) -> str:
+    """
+    生のセッショントークンから、DB検索・保存用のSHA-256ハッシュを生成する。
+    """
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
+
+
+def create_session_expiration() -> datetime:
+    """
+    新しいログインセッションの有効期限をUTCで生成する。
+    """
+    return datetime.now(UTC) + SESSION_LIFETIME
+
 
 # ----------------------------------------------
 # ユーザー名の設定
 # ----------------------------------------------
 
-# ユーザー名の表記揺れを防ぐため、前後の空白を除去して小文字へ統一する。
 def normalize_username(username: str) -> str:
+    """
+    ユーザー名の表記揺れを防ぐため、前後の空白を除去して小文字へ統一する。
+    """
     return username.strip().lower()
 
 
@@ -65,12 +127,23 @@ SessionLocal = sessionmaker(bind=engine)
 # SQLAlchemyのモデル定義
 # ----------------------------------------------
 
-# SQLAlchemyのベースクラスを定義
+# --- Base ---
+
 class Base(DeclarativeBase):
+    """
+    SQLAlchemyのベースクラス。
+    このクラスを継承してDBモデルを定義する。
+    """
     pass
 
-# [DBモデル] messageテーブル: ユーザーが投稿したメッセージを表す。
+
+# --- messagesテーブル ---
+
 class Message(Base):
+    """
+    ユーザーが投稿したメッセージを表すDBモデル (messagesテーブル)。
+    メッセージの内容、アーカイブ状態、作成日時を保持する。
+    """
     __tablename__ = "messages"
     # テーブルのカラムを定義
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -86,13 +159,18 @@ class Message(Base):
         server_default=func.now(),
     )
 
-# メッセージ作成時にクライアントから受け取るデータを定義する。
+
 class MessageCreate(BaseModel):
+    """
+    メッセージ作成時にクライアントから受け取るデータを定義する。
+    """
     text: str = Field(min_length=1, max_length=255)
 
 
-# メッセージ取得時にクライアントへ返すデータを定義する。
 class MessageRead(BaseModel):
+    """
+    メッセージ取得時にクライアントへ返すデータを定義する。
+    """
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -100,9 +178,12 @@ class MessageRead(BaseModel):
     is_archived: bool
     created_at: datetime
 
+# --- usersテーブル ---
 
-# [DBモデル] usersテーブル: アプリケーションへログインできるユーザー情報を表す。
 class User(Base):
+    """
+    アプリケーションへログインできるユーザー情報を表すDBモデル (usersテーブル)。
+    """
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -126,44 +207,100 @@ class User(Base):
     )
 
 
-# ユーザー登録APIがクライアントから受け取るデータを定義する。
 class UserCreate(BaseModel):
+    """
+    ユーザー登録APIがクライアントから受け取るデータを定義する。
+    """
     username: str = Field(
         min_length=3,
         max_length=50,
         pattern=r"^[A-Za-z0-9_-]+$",
     )
-
     password: str = Field(
         min_length=8,
         max_length=128,
     )
 
 
-# ユーザー登録後などにクライアントへ返す公開可能なユーザー情報を定義する。
-# password_hashはレスポンスへ含めない。
 class UserResponse(BaseModel):
+    """
+    ユーザー登録後などにクライアントへ返す公開可能なユーザー情報を定義する。
+    password_hashはレスポンスへ含めない。
+    """
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     username: str
     created_at: datetime
 
+
+# --- auth_sessionsテーブル ---
+
+class AuthSession(Base):
+    """
+    ログイン中のユーザーセッションをDB上で管理するモデル (auth_sessionsテーブル)。
+    Cookieに保存する生のセッショントークンは保存せず、
+    SHA-256でハッシュ化した値のみをDBへ保存する。
+    """
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    token_hash: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class LoginRequest(BaseModel):
+    """
+    ログインAPIがクライアントから受け取るデータを定義する。
+    """
+    username: str = Field(
+        min_length=1,
+        max_length=50,
+    )
+
+    password: str = Field(
+        min_length=1,
+        max_length=128,
+    )
+
+
 # ----------------------------------------------
 # FastAPIアプリケーションの設定
 # ----------------------------------------------
 
-# データベースセッションを取得するための依存関係を定義
 def get_db():
+    """データベースセッションを取得するための依存関係"""
     with SessionLocal() as session:
         yield session
 
 # データベースセッションの型を定義
 DbSession = Annotated[Session, Depends(get_db)]
 
-# FastAPIアプリケーションのライフサイクルイベントを定義
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """FastAPIアプリケーションのライフサイクルイベントを管理するコンテキストマネージャー。"""
     yield
     engine.dispose()
 
@@ -197,6 +334,8 @@ def db_health(db: DbSession):
         "database": "connected",
     }
 
+
+# --- メッセージ関連のAPIエンドポイント ---
 
 # メッセージを作成するAPIエンドポイントを追加
 @app.post(
@@ -253,6 +392,8 @@ def archive_message(
     return message
 
 
+# --- ユーザー登録関連のAPIエンドポイント ---
+
 # 新規ユーザー登録APIエンドポイント
 # usernameの重複を確認し、パスワードをハッシュ化してからDBへ保存する。
 @app.post(
@@ -298,3 +439,172 @@ def create_user(
     db.refresh(user)
 
     return user
+
+
+# --- ログイン関連のAPIエンドポイント ---
+
+# usernameとpasswordを検証し、正しければ新しいセッションを作成する。
+# 生のセッショントークンはHttpOnly Cookieとしてクライアントへ返す。
+@app.post(
+    "/login",
+    response_model=UserResponse,
+)
+def login(
+    login_data: LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> User:
+    username = normalize_username(login_data.username)
+
+    user = db.scalar(
+        select(User).where(
+            User.username == username
+        )
+    )
+
+    # ユーザーが存在しない場合でもパスワード違いの場合でも401 Unauthorizedを返す。
+    if (
+        user is None
+        or not verify_password(
+            login_data.password,
+            user.password_hash,
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    session_token = generate_session_token()
+
+    auth_session = AuthSession(
+        user_id=user.id,
+        token_hash=hash_session_token(session_token),
+        expires_at=create_session_expiration(),
+    )
+
+    db.add(auth_session)
+    db.commit()
+
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        max_age=int(SESSION_LIFETIME.total_seconds()),
+        httponly=True,  # CookieをJavaScriptからアクセスできないようにする
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
+    return user
+
+
+def get_current_user(
+    session_token: Annotated[
+        str | None,
+        Cookie(alias=SESSION_COOKIE_NAME),
+    ] = None,
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Cookie内のセッショントークンを検証し、有効なログインユーザーを取得するFastAPI Dependency。
+    未ログイン・無効・期限切れの場合は401を返す。
+    """
+    if session_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    token_hash = hash_session_token(session_token)
+
+    auth_session = db.scalar(
+        select(AuthSession).where(
+            AuthSession.token_hash == token_hash
+        )
+    )
+
+    if auth_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+
+    now = datetime.now(UTC)
+
+    if auth_session.expires_at <= now:
+        db.delete(auth_session)
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired",
+        )
+
+    user = db.get(
+        User,
+        auth_session.user_id,
+    )
+
+    if user is None:
+        db.delete(auth_session)
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+
+    return user
+
+
+# 現在ログインしているユーザー自身の公開情報を返す。
+# get_current_userをDependencyとして使用するため、
+# 有効なセッションを持つユーザーだけアクセスできる。
+@app.get(
+    "/me",
+    response_model=UserResponse,
+)
+def get_me(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    return current_user
+
+
+# 現在のセッションをDBから削除し、
+# クライアント側のセッションCookieも削除する。
+# すでにログアウト済みの場合でも204を返す。
+@app.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def logout(
+    session_token: Annotated[
+        str | None,
+        Cookie(alias=SESSION_COOKIE_NAME),
+    ] = None,
+    db: Session = Depends(get_db),
+) -> Response:
+    if session_token is not None:
+        token_hash = hash_session_token(session_token)
+
+        auth_session = db.scalar(
+            select(AuthSession).where(
+                AuthSession.token_hash == token_hash
+            )
+        )
+
+        if auth_session is not None:
+            db.delete(auth_session)
+            db.commit()
+
+    response = Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )
+
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+    )
+
+    return response
