@@ -22,9 +22,10 @@ class Base(DeclarativeBase):
 
 
 # SQLAlchemyのエンジンを作成
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 # SQLAlchemyのセッションを作成するためのセッションメーカーを定義
+# autoflush=False, autocommit=Falseに設定することで、明示的にコミットするまで変更が反映されないようにする。
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
