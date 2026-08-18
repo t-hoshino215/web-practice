@@ -1,0 +1,76 @@
+"""
+FastAPI Dependencyとして使用するための認証関連の関数を定義するモジュール
+"""
+
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import Cookie, Depends, HTTPException, status
+from sqlalchemy import select
+
+from config import SESSION_COOKIE_NAME
+from database import DbSession
+from models import AuthSession, User
+from services import hash_session_token
+
+
+def get_current_user(
+    db: DbSession,
+    session_token: Annotated[
+        str | None,
+        Cookie(alias=SESSION_COOKIE_NAME),
+    ] = None,
+) -> User:
+    """
+    Cookie内のセッショントークンを検証し、有効なログインユーザーを取得するFastAPI Dependency。
+    未ログイン・無効・期限切れの場合は401を返す。
+    """
+    if session_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    token_hash = hash_session_token(session_token)
+
+    auth_session = db.scalar(
+        select(AuthSession).where(
+            AuthSession.token_hash == token_hash
+        )
+    )
+
+    if auth_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+
+    now = datetime.now(UTC)
+
+    if auth_session.expires_at <= now:
+        db.delete(auth_session)
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired",
+        )
+
+    user = db.get(
+        User,
+        auth_session.user_id,
+    )
+
+    if user is None:
+        db.delete(auth_session)
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+
+    return user
+
+# Dependencyとして使用するための型エイリアスを定義
+CurrentUser = Annotated[User, Depends(get_current_user)]

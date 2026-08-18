@@ -1,25 +1,22 @@
-import os
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from main import Base
+import models # noqa: F401
+from config import DATABASE_URL
+from database import Base
 
 # this is the Alembic Config object, which provides access to the values within the .ini file in use.
-config = context.config
+alembic_config = context.config
 
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+if alembic_config.config_file_name is not None:
+    fileConfig(alembic_config.config_file_name)
 
-
-database_url = os.environ.get("DATABASE_URL")
-
-if not database_url:
-    raise RuntimeError("DATABASE_URL is not set")
+database_url = DATABASE_URL
 
 # ConfigParserで%が解釈されるのを防ぐ
-config.set_main_option(
+alembic_config.set_main_option(
     "sqlalchemy.url",
     database_url.replace("%", "%%"),
 )
@@ -29,7 +26,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = alembic_config.get_main_option("sqlalchemy.url")
 
     context.configure(
         url=url,
@@ -46,8 +43,8 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    configuration = config.get_section(
-        config.config_ini_section,
+    configuration = alembic_config.get_section(
+        alembic_config.config_ini_section,
         {},
     )
 

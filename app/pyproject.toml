@@ -1,5 +1,5 @@
 [project]
-name = "PROJECT_NAME"
+name = "web-practice"
 version = "0.1.0"
 description = ""
 readme = "README.md"
@@ -17,7 +17,7 @@ dependencies = [
 dev = ["mypy>=1.20.0", "pytest>=9.0.2", "pytest-cov>=7.1.0", "ruff>=0.15.8"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["."]
 addopts = "-v"
 markers = [
     "unit: mark a test as a unit test",
@@ -49,16 +49,15 @@ select = [
 ignore = ["E501", "C901"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["src"]
 combine-as-imports = true
 
 [tool.mypy]
 python_version = "3.14"
-mypy_path = "src"
+mypy_path = "."
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 
 [tool.pyright]
-extraPaths = ["src"]
+extraPaths = ["."]

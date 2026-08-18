@@ -44,12 +44,16 @@ COPY --from=builder /app/.venv /app/.venv
 
 COPY --chown=appuser:appuser \
     main.py \
+    database.py \
+    config.py \
     alembic.ini \
     ./
 
-COPY --chown=appuser:appuser \
-    alembic \
-    ./alembic
+COPY --chown=appuser:appuser models   ./models
+COPY --chown=appuser:appuser routers  ./routers
+COPY --chown=appuser:appuser schemas  ./schemas
+COPY --chown=appuser:appuser services ./services
+COPY --chown=appuser:appuser alembic  ./alembic
 
 USER appuser
 
