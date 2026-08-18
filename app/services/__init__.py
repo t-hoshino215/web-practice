@@ -1,5 +1,4 @@
 from services.auth import (
-    CurrentUser,
     create_session_expiration,
     generate_session_token,
     hash_password,
@@ -9,7 +8,6 @@ from services.auth import (
 )
 
 __all__ = [
-    "CurrentUser",
     "hash_password",
     "normalize_username",
     "verify_password",

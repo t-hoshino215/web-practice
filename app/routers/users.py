@@ -7,9 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from database import DbSession
+from dependencies import CurrentUser
 from models import User
 from schemas import UserCreate, UserResponse
-from services import CurrentUser, hash_password, normalize_username
+from services import hash_password, normalize_username
 
 # ルーター設定
 router = APIRouter(
