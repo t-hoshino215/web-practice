@@ -1,6 +1,6 @@
 """
 FastAPIのルートエンドポイントを定義する
-ヘルチェック用のエンドポイントも含む
+ヘルスチェック用のエンドポイントも含む
 """
 
 from fastapi import APIRouter
