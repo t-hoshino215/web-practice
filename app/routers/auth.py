@@ -10,10 +10,12 @@ from sqlalchemy import select
 from config import COOKIE_SECURE, SESSION_COOKIE_NAME, SESSION_LIFETIME
 from database import DbSession
 from models import AuthSession, User
-from schemas import LoginRequest, UserResponse
+from schemas import LoginRequest, LoginResponse, UserResponse
 from services import (
     create_session_expiration,
+    generate_csrf_token,
     generate_session_token,
+    hash_csrf_token,
     hash_session_token,
     normalize_username,
     verify_password,
@@ -28,17 +30,18 @@ router = APIRouter(
 
 @router.post(
     "/login",
-    response_model=UserResponse,
+    response_model=LoginResponse,
 )
 def login(
     login_data: LoginRequest,
     response: Response,
     db: DbSession,
-) -> User:
+) -> LoginResponse:
     """
     usernameとpasswordを検証し、正しければ新しいセッションを作成する。
     生のセッショントークンはHttpOnly Cookieとしてクライアントへ返す。
     """
+    # ユーザー名を正規化してDB検索する
     username = normalize_username(login_data.username)
 
     user = db.scalar(
@@ -60,17 +63,22 @@ def login(
             detail="Invalid username or password",
         )
 
+    # セッションを作成し、Cookieにセッショントークンを設定する
     session_token = generate_session_token()
+    csrf_token = generate_csrf_token()
 
     auth_session = AuthSession(
         user_id=user.id,
         token_hash=hash_session_token(session_token),
+        csrf_token_hash=hash_csrf_token(csrf_token),
         expires_at=create_session_expiration(),
     )
 
+    # DBにセッションを保存する
     db.add(auth_session)
     db.commit()
 
+    # Cookieにセッショントークンを設定する
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_token,
@@ -81,7 +89,11 @@ def login(
         path="/",
     )
 
-    return user
+    # ユーザー情報とCSRFトークンを持つLoginResponseを返す
+    return LoginResponse(
+        user=UserResponse.model_validate(user),
+        csrf_token=csrf_token,
+    )
 
 
 # --- ログアウト ---

@@ -4,6 +4,8 @@
 
 from pydantic import BaseModel, Field
 
+from schemas.user import UserResponse
+
 
 class LoginRequest(BaseModel):
     """
@@ -18,3 +20,10 @@ class LoginRequest(BaseModel):
         min_length=1,
         max_length=128,
     )
+
+class LoginResponse(BaseModel):
+    """
+    ログイン成功時にユーザー情報とCSRFトークンを返す。
+    """
+    user: UserResponse
+    csrf_token: str

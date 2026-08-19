@@ -66,6 +66,41 @@ def create_session_expiration() -> datetime:
 
 
 # ----------------------------------------------
+# CSRFトークン生成処理
+# ----------------------------------------------
+
+def generate_csrf_token() -> str:
+    """
+    推測困難なランダムなCSRFトークンを生成する。
+    """
+    return secrets.token_urlsafe(32)
+
+
+def hash_csrf_token(token: str) -> str:
+    """
+    CSRFトークンをDB保存・比較用のSHA-256ハッシュへ変換する。
+    """
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
+
+
+def is_valid_csrf_token(
+    token: str,
+    expected_hash: str,
+) -> bool:
+    """
+    CSRFトークンの検証を行う。
+    クライアントからのCSRFトークンと現在のセッションに紐づくトークンを比較する。
+    """
+    actual_hash = hash_csrf_token(token)
+
+    return secrets.compare_digest(
+        actual_hash,
+        expected_hash,
+    )
+
+# ----------------------------------------------
 # ユーザー名の設定
 # ----------------------------------------------
 

@@ -16,6 +16,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
 
+# CSRF攻撃対策用トークンのハッシュ値。
+# クライアントには生のトークンを渡し、DBにはハッシュのみ保存する。
+csrf_token_hash: Mapped[str] = mapped_column(
+    String(64),
+    nullable=False,
+)
 
 class AuthSession(Base):
     """
