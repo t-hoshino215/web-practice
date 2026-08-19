@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class UserCreate(BaseModel):
     """
     ユーザー登録APIが受け取る入力データを定義する。
+    roleはユーザー登録時に指定させないため、UserCreateスキーマには含めない。
     """
     username: str = Field(
         min_length=3,
@@ -32,4 +33,5 @@ class UserResponse(BaseModel):
 
     id: int
     username: str
+    role: str
     created_at: datetime
