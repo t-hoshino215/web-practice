@@ -6,11 +6,12 @@
     - text: メッセージの内容 (最大255文字)
     - is_archived: メッセージのアーカイブ状態 (デフォルト値はFalse)
     - created_at: メッセージ作成日時 (デフォルト値は現在時刻)
+    - user_id: メッセージを投稿したユーザーのID (外部キー、usersテーブルのidに紐付く)
 """
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, false, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -19,7 +20,7 @@ from database import Base
 class Message(Base):
     """
     ユーザーが投稿したメッセージを表すDBモデル (messagesテーブル)。
-    メッセージの内容、アーカイブ状態、作成日時を保持する。
+    メッセージの内容、アーカイブ状態、作成日時、ユーザーIDを保持する。
     """
 
     __tablename__ = "messages"
@@ -38,4 +39,10 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
