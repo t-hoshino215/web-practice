@@ -6,9 +6,9 @@ from fastapi import APIRouter
 from sqlalchemy import select
 
 from database import DbSession
-from dependencies.auth import CurrentAdmin
-from models import User
-from schemas.user import UserResponse
+from dependencies import CurrentAdmin
+from models import Message, User
+from schemas import MessageRead, UserResponse
 
 # ルーター設定
 router = APIRouter(
@@ -34,3 +34,22 @@ def get_all_users(
     ).all()
 
     return list(users)
+
+
+@router.get(
+    "/messages",
+    response_model=list[MessageRead],
+)
+def get_all_messages(
+    _admin: CurrentAdmin,
+    db: DbSession,
+) -> list[Message]:
+    """
+    全メッセージの一覧を取得できるAPI。
+    管理者権限を持つユーザーのみがアクセス可能。
+    """
+    messages = db.scalars(
+        select(Message).order_by(Message.id)
+    ).all()
+
+    return list(messages)
