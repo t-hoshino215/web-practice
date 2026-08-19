@@ -1,5 +1,5 @@
 """
-FastAPI Dependencyとして使用するための認証関連の関数を定義するモジュール
+FastAPIのDependencyとして利用する、認証関連の依存関係を定義するモジュール。
 """
 
 from datetime import UTC, datetime
@@ -12,6 +12,53 @@ from config import SESSION_COOKIE_NAME
 from database import DbSession
 from models import AuthSession, User
 from services import hash_session_token
+
+
+def get_current_auth_session(
+    db: DbSession,
+    session_token: Annotated[
+        str | None,
+        Cookie(alias=SESSION_COOKIE_NAME),
+    ] = None,
+) -> AuthSession:
+    """
+    Cookieに保存されたセッショントークンを取得し、DB上の有効な認証セッションを返す。
+    Cookieなし・Session不明・期限切れの場合は401を返す。
+    """
+    if session_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    token_hash = hash_session_token(session_token)
+
+    auth_session = db.query(AuthSession).filter(
+        AuthSession.token_hash == token_hash
+    ).one_or_none()
+
+    if auth_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+
+    now = datetime.now(UTC)
+
+    if auth_session.expires_at <= now:
+        db.delete(auth_session)
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired",
+        )
+
+    return auth_session
+
+
+# FastAPIのDependencyとして利用する現在の有効な認証セッションの型エイリアス。
+CurrentAuthSession = Annotated[AuthSession, Depends(get_current_auth_session)]
 
 
 def get_current_user(
@@ -72,5 +119,5 @@ def get_current_user(
 
     return user
 
-# Dependencyとして使用するための型エイリアスを定義
+# FastAPIのDependencyとして利用する現在の有効なログインユーザーの型エイリアス。
 CurrentUser = Annotated[User, Depends(get_current_user)]
