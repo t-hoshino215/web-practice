@@ -1,0 +1,37 @@
+{
+  "name": "Python Dev (uv)",
+  "dockerComposeFile": [
+    "../../__DOCKER_ENV_REPO_NAME__/compose/base.yml",
+    "../../__DOCKER_ENV_REPO_NAME__/compose/python.yml"
+  ],
+  "service": "__SERVICE_NAME__",
+  "workspaceFolder": "__CONTAINER_WORKSPACE__",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "python.defaultInterpreterPath": "__CONTAINER_WORKSPACE__/.venv/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": { "source.organizeImports": "explicit" },
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.debugpy",
+        "tamasfe.even-better-toml",
+        "kevinrose.vsc-python-indent",
+        "ms-python.mypy-type-checker"
+      ]
+    }
+  },
+
+  "postCreateCommand": "bash __CONTAINER_WORKSPACE__/.devcontainer/post-create.sh 2>/dev/null || true",
+  "postStartCommand": "echo 'Python: '$(python --version 2>/dev/null || echo 'N/A') ' | uv: '$(uv --version)",
+
+  "remoteUser": "__USER_NAME__"
+}

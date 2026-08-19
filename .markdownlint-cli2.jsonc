@@ -1,0 +1,36 @@
+// markdownlint-cli2 の設定ファイル (JSONC 形式)
+// https://github.com/DavidAnson/markdownlint-cli2
+// 全ルール一覧: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+{
+  "config": {
+    // 推奨セットを全て有効化したうえで、以下で個別に調整する
+    "default": true,
+
+    // 行の長さは厳しすぎると既存ドキュメントに衝突するので緩める
+    "MD013": {
+      "line_length": 250,
+      "code_blocks": false,
+      "tables": false,
+      "headings": false
+    },
+
+    // 日本語文書では inline HTML を許可したいことが多い
+    "MD033": false,
+
+    // 
+    "MD034": false,
+
+    // 順序付きリストの番号スタイル (1. 1. 1. でも 1. 2. 3. でも可)
+    "MD029": { "style": "one_or_ordered" }
+  },
+
+  // リント対象から除外したいパス
+  "ignores": [
+    "**/node_modules",
+    "**/.git",
+    "**/dist",
+    "**/build",
+    "**/CHANGELOG.md",
+    "**/.prettierignore"
+  ]
+}
