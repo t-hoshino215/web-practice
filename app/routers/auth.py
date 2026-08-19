@@ -4,11 +4,12 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
 
 from config import COOKIE_SECURE, SESSION_COOKIE_NAME, SESSION_LIFETIME
 from database import DbSession
+from dependencies import require_csrf
 from models import AuthSession, User
 from schemas import LoginRequest, LoginResponse, UserResponse
 from services import (
@@ -101,6 +102,7 @@ def login(
 @router.post(
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_csrf)],
 )
 def logout(
     db: DbSession,
