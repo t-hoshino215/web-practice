@@ -33,9 +33,11 @@ def get_current_auth_session(
 
     token_hash = hash_session_token(session_token)
 
-    auth_session = db.query(AuthSession).filter(
-        AuthSession.token_hash == token_hash
-    ).one_or_none()
+    auth_session = db.scalar(
+        select(AuthSession).where(
+            AuthSession.token_hash == token_hash
+        )
+    )
 
     if auth_session is None:
         raise HTTPException(
@@ -43,9 +45,7 @@ def get_current_auth_session(
             detail="Invalid session",
         )
 
-    now = datetime.now(UTC)
-
-    if auth_session.expires_at <= now:
+    if auth_session.expires_at <= datetime.now(UTC):
         db.delete(auth_session)
         db.commit()
 
