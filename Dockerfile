@@ -75,10 +75,8 @@ RUN apt-get update \
     && curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install global npm packages for development
-RUN npm install -g @anthropic-ai/claude-code @openai/codex markdownlint-cli2
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g markdownlint-cli2
 
 # Switch the login shell to zsh and create the dev config + uv cache dirs
 RUN chsh -s /bin/zsh "${USER_NAME}" \
@@ -93,6 +91,9 @@ COPY . "${CONTAINER_WORKSPACE}"/
 
 # Switch to non-root user
 USER ${USER_NAME}
+
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 EXPOSE 8000
 
