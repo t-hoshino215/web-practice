@@ -16,6 +16,7 @@ router = APIRouter(
     tags=["messages"],
 )
 
+
 @router.get(
     "",
     response_model=list[MessageRead],
@@ -27,13 +28,7 @@ def list_messages(
     """
     ログイン中のユーザーのメッセージの一覧を取得する。
     """
-    messages = db.scalars(
-        select(Message)
-        .where(
-            Message.user_id == current_user.id
-        )
-        .order_by(Message.id)
-    ).all()
+    messages = db.scalars(select(Message).where(Message.user_id == current_user.id).order_by(Message.id)).all()
 
     return list(messages)
 
@@ -61,11 +56,7 @@ def create_message(
     return message
 
 
-@router.patch(
-    "/{message_id}/archive",
-    response_model=MessageRead,
-    dependencies=[Depends(require_csrf)]
-)
+@router.patch("/{message_id}/archive", response_model=MessageRead, dependencies=[Depends(require_csrf)])
 def archive_message(
     message_id: int,
     current_user: CurrentUser,

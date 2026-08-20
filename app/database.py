@@ -18,6 +18,7 @@ class Base(DeclarativeBase):
     SQLAlchemyのベースクラス。
     このクラスを継承してDBモデルを定義する。
     """
+
     pass
 
 

@@ -17,6 +17,7 @@ from config import SESSION_LIFETIME
 
 password_hasher = PasswordHash.recommended()
 
+
 def hash_password(password: str) -> str:
     """
     平文パスワードからDB保存用のハッシュを生成する。
@@ -41,6 +42,7 @@ def verify_password(
 # セッショントークンの設定
 # ----------------------------------------------
 
+
 def generate_session_token() -> str:
     """
     推測困難なランダムなセッショントークンを生成する。
@@ -53,9 +55,7 @@ def hash_session_token(token: str) -> str:
     """
     生のセッショントークンから、DB検索・保存用のSHA-256ハッシュを生成する。
     """
-    return hashlib.sha256(
-        token.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def create_session_expiration() -> datetime:
@@ -69,6 +69,7 @@ def create_session_expiration() -> datetime:
 # CSRFトークン生成処理
 # ----------------------------------------------
 
+
 def generate_csrf_token() -> str:
     """
     推測困難なランダムなCSRFトークンを生成する。
@@ -80,9 +81,7 @@ def hash_csrf_token(token: str) -> str:
     """
     CSRFトークンをDB保存・比較用のSHA-256ハッシュへ変換する。
     """
-    return hashlib.sha256(
-        token.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def is_valid_csrf_token(
@@ -100,9 +99,11 @@ def is_valid_csrf_token(
         expected_hash,
     )
 
+
 # ----------------------------------------------
 # ユーザー名の設定
 # ----------------------------------------------
+
 
 def normalize_username(username: str) -> str:
     """

@@ -23,6 +23,7 @@ class AuthSession(Base):
     Cookieに保存する生のセッショントークンは保存せず、
     SHA-256でハッシュ化した値のみをDBへ保存する。
     """
+
     __tablename__ = "auth_sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True)

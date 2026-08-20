@@ -32,7 +32,7 @@ class Message(Base):
     is_archived: Mapped[bool] = mapped_column(
         Boolean,
         default=False,  # SQLAlchemyのデフォルト値を設定
-        server_default=false(), # PostgreSQLのデフォルト値を設定 (列追加時に既存の行に対しても適用される)
+        server_default=false(),  # PostgreSQLのデフォルト値を設定 (列追加時に既存の行に対しても適用される)
         nullable=False,
     )
 

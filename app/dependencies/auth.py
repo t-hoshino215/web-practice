@@ -30,6 +30,7 @@ from services import hash_session_token
 # 認証セッション
 # ----------------------------------------------
 
+
 def get_current_auth_session(
     db: DbSession,
     session_token: Annotated[
@@ -49,11 +50,7 @@ def get_current_auth_session(
 
     token_hash = hash_session_token(session_token)
 
-    auth_session = db.scalar(
-        select(AuthSession).where(
-            AuthSession.token_hash == token_hash
-        )
-    )
+    auth_session = db.scalar(select(AuthSession).where(AuthSession.token_hash == token_hash))
 
     if auth_session is None:
         raise HTTPException(
@@ -81,6 +78,7 @@ CurrentAuthSession = Annotated[AuthSession, Depends(get_current_auth_session)]
 # ログイン中のユーザー
 # ----------------------------------------------
 
+
 def get_current_user(
     db: DbSession,
     session_token: Annotated[
@@ -100,11 +98,7 @@ def get_current_user(
 
     token_hash = hash_session_token(session_token)
 
-    auth_session = db.scalar(
-        select(AuthSession).where(
-            AuthSession.token_hash == token_hash
-        )
-    )
+    auth_session = db.scalar(select(AuthSession).where(AuthSession.token_hash == token_hash))
 
     if auth_session is None:
         raise HTTPException(
@@ -139,6 +133,7 @@ def get_current_user(
 
     return user
 
+
 # FastAPIのDependencyとして利用する現在の有効なログインユーザーの型エイリアス。
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
@@ -146,6 +141,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 # ----------------------------------------------
 # 管理者権限の確認
 # ----------------------------------------------
+
 
 def require_admin(
     current_user: CurrentUser,

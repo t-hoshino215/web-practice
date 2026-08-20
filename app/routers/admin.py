@@ -22,16 +22,14 @@ router = APIRouter(
     response_model=list[UserResponse],
 )
 def get_all_users(
-    _admin: CurrentAdmin,   # ここでCurrentAdminを依存関係として指定することで、管理者権限を持つユーザーのみがアクセス可能になる。
+    _admin: CurrentAdmin,  # ここでCurrentAdminを依存関係として指定することで、管理者権限を持つユーザーのみがアクセス可能になる。
     db: DbSession,
 ) -> list[User]:
     """
     全ユーザーの一覧を取得できるAPI。
     管理者権限を持つユーザーのみがアクセス可能。
     """
-    users = db.scalars(
-        select(User).order_by(User.id)
-    ).all()
+    users = db.scalars(select(User).order_by(User.id)).all()
 
     return list(users)
 
@@ -48,8 +46,6 @@ def get_all_messages(
     全メッセージの一覧を取得できるAPI。
     管理者権限を持つユーザーのみがアクセス可能。
     """
-    messages = db.scalars(
-        select(Message).order_by(Message.id)
-    ).all()
+    messages = db.scalars(select(Message).order_by(Message.id)).all()
 
     return list(messages)

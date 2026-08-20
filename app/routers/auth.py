@@ -29,6 +29,7 @@ router = APIRouter(
 
 # --- ログイン ---
 
+
 @router.post(
     "/login",
     response_model=LoginResponse,
@@ -45,19 +46,12 @@ def login(
     # ユーザー名を正規化してDB検索する
     username = normalize_username(login_data.username)
 
-    user = db.scalar(
-        select(User).where(
-            User.username == username
-        )
-    )
+    user = db.scalar(select(User).where(User.username == username))
 
     # ユーザーが存在しない場合でもパスワード違いの場合でも401 Unauthorizedを返す。
-    if (
-        user is None
-        or not verify_password(
-            login_data.password,
-            user.password_hash,
-        )
+    if user is None or not verify_password(
+        login_data.password,
+        user.password_hash,
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -99,6 +93,7 @@ def login(
 
 # --- ログアウト ---
 
+
 @router.post(
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -114,19 +109,13 @@ def logout(
     if session_token is not None:
         token_hash = hash_session_token(session_token)
 
-        auth_session = db.scalar(
-            select(AuthSession).where(
-                AuthSession.token_hash == token_hash
-            )
-        )
+        auth_session = db.scalar(select(AuthSession).where(AuthSession.token_hash == token_hash))
 
         if auth_session is not None:
             db.delete(auth_session)
             db.commit()
 
-    response = Response(
-        status_code=status.HTTP_204_NO_CONTENT
-    )
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
 
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
@@ -134,4 +123,3 @@ def logout(
     )
 
     return response
-

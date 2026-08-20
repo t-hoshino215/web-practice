@@ -36,7 +36,7 @@ class User(Base):
 
     username: Mapped[str] = mapped_column(
         String(50),
-        unique=True,    # ユーザー名は一意である必要があるため、unique=Trueを設定
+        unique=True,  # ユーザー名は一意である必要があるため、unique=Trueを設定
         index=True,
         nullable=False,
     )

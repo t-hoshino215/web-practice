@@ -33,16 +33,10 @@ def create_user(
     ユーザー名の重複は既存ユーザーの確認とUNIQUE制約の2段階で確認する。
     """
     # ユーザー名を正規化する（小文字に統一、前後の空白を除去）
-    username = normalize_username(
-        user_data.username
-    )
+    username = normalize_username(user_data.username)
 
     # DBから既存のユーザーを検索して、usernameの重複を簡易確認する。
-    existing_user = db.scalar(
-        select(User).where(
-            User.username == username
-        )
-    )
+    existing_user = db.scalar(select(User).where(User.username == username))
     if existing_user is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -52,9 +46,7 @@ def create_user(
     # ユーザーを作成し、パスワードをハッシュ化してDBに保存する。
     user = User(
         username=username,
-        password_hash=hash_password(
-            user_data.password
-        ),
+        password_hash=hash_password(user_data.password),
     )
 
     db.add(user)
