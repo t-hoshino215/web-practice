@@ -5,15 +5,16 @@
   ],
   "service": "dev",
   "workspaceFolder": "/workspace",
-
   "customizations": {
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
-        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.defaultInterpreterPath": "/workspace/app/.venv/bin/python",
         "python.terminal.activateEnvironment": true,
         "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": { "source.organizeImports": "explicit" },
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
         "files.trimTrailingWhitespace": true,
         "files.insertFinalNewline": true
       },
@@ -28,9 +29,7 @@
       ]
     }
   },
-
   "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh 2>/dev/null || true",
   "postStartCommand": "echo 'Python: '$(python --version 2>/dev/null || echo 'N/A') ' | uv: '$(uv --version)",
-
   "remoteUser": "dworker"
 }
