@@ -12,7 +12,7 @@ from pytest import MonkeyPatch
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.engine import make_url
 
-APP_DIR = Path(__file__).parents[2] / "app"
+APP_DIR = Path(__file__).parents[2]
 ALEMBIC_INI = APP_DIR / "alembic.ini"
 AMBIENT_DATABASE_URL_ENV = "PYTEST_AMBIENT_DATABASE_URL"
 EXPECTED_CHAIN = [

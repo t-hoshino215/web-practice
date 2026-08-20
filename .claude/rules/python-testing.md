@@ -21,9 +21,9 @@ uv run pytest --cov=src --cov-report=term-missing
 
 ## Naming conventions
 
-- Test file location: under `tests/`
+- Test file location: under `app/tests/`
 - Test file name: test_ + <lowercase snake_case> + .py
-  Example: `tests/test_login.py`
+  Example: `app/tests/test_login.py`
 - Test class name: Test +  <UpperCamelCase of the feature being tested>
   Example: `class TestLoginService:`
 - Test function name: test_ + <what is being tested in lowercase snake_case>
@@ -36,7 +36,7 @@ uv run pytest --cov=src --cov-report=term-missing
 - As a rule, write one assertion per test function
 - Define fixtures in conftest.py and set the appropriate scope
 - Use unittest.mock.patch or pytest-mock for mocking external APIs
-- Create test data using the factory pattern in `tests/factories/`
+- Create test data using the factory pattern in `app/tests/factories/`
 - Use `parametrize` to group similar test cases
 
 Example:

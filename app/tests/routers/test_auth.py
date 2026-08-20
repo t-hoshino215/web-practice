@@ -3,17 +3,17 @@
 from typing import cast
 
 import pytest
-from dependencies.auth import get_current_auth_session
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx2 import Response
-from models import AuthSession
 from pytest import MonkeyPatch
-from routers import auth as auth_router
-from services import hash_password, hash_session_token
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from dependencies.auth import get_current_auth_session
+from models import AuthSession
+from routers import auth as auth_router
+from services import hash_password, hash_session_token
 from tests.factories import create_auth_session, create_user
 
 
@@ -23,12 +23,8 @@ def login_successfully(
     monkeypatch: MonkeyPatch,
 ) -> Response:
     """Create credentials and perform a deterministic successful login."""
-    create_user(
-        db_session, username="alice", password_hash=hash_password("password123")
-    )
-    monkeypatch.setattr(
-        auth_router, "generate_session_token", lambda: "raw-session-token"
-    )
+    create_user(db_session, username="alice", password_hash=hash_password("password123"))
+    monkeypatch.setattr(auth_router, "generate_session_token", lambda: "raw-session-token")
     monkeypatch.setattr(auth_router, "generate_csrf_token", lambda: "raw-csrf-token")
     return cast(
         Response,
@@ -116,9 +112,7 @@ def test_login_sets_secure_cookie_when_enabled(
 @pytest.mark.integration
 def test_login_rejects_unknown_user(client: TestClient) -> None:
     """Unknown usernames should receive the generic credential failure."""
-    response = client.post(
-        "/login", json={"username": "missing", "password": "password123"}
-    )
+    response = client.post("/login", json={"username": "missing", "password": "password123"})
 
     assert (response.status_code, response.json()) == (
         401,
@@ -129,13 +123,9 @@ def test_login_rejects_unknown_user(client: TestClient) -> None:
 @pytest.mark.integration
 def test_login_rejects_wrong_password(client: TestClient, db_session: Session) -> None:
     """Wrong passwords should receive the same generic credential failure."""
-    create_user(
-        db_session, username="alice", password_hash=hash_password("correct-password")
-    )
+    create_user(db_session, username="alice", password_hash=hash_password("correct-password"))
 
-    response = client.post(
-        "/login", json={"username": "alice", "password": "wrong-password"}
-    )
+    response = client.post("/login", json={"username": "alice", "password": "wrong-password"})
 
     assert (response.status_code, response.json()) == (
         401,

@@ -1,5 +1,7 @@
 """Shared fixtures for unit and integration tests."""
 
+# ruff: noqa: E402
+
 # Application imports must follow the test-only environment and path safeguards.
 
 import os
@@ -18,19 +20,20 @@ else:
 # isolated URL before importing any application code.
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["COOKIE_SECURE"] = "false"
-APP_DIR = Path(__file__).parents[1] / "app"
+APP_DIR = Path(__file__).parents[1]
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
-import models  # noqa: F401
 import pytest
-from database import Base, get_db
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from main import create_app
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
+
+import models  # noqa: F401
+from database import Base, get_db
+from main import create_app
 
 
 @pytest.fixture

@@ -23,8 +23,8 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = [".", ".."]
-testpaths = ["../tests"]
+pythonpath = ["."]
+testpaths = ["tests"]
 addopts = "-v --strict-config --strict-markers"
 markers = [
     "unit: mark a test as a unit test",
@@ -35,7 +35,7 @@ markers = [
 branch = true
 relative_files = true
 source = ["."]
-omit = ["alembic/*"]
+omit = ["alembic/*", "tests/*"]
 
 [tool.coverage.report]
 show_missing = true
