@@ -65,10 +65,9 @@ def test_auth_dependencies_query_hashed_cookie_on_token_column(dependency: objec
 
     statement = db.scalar.call_args.args[0]
     predicate = statement.whereclause
-    assert (
-        predicate.left.compare(AuthSession.__table__.c.token_hash),
-        predicate.right.value,
-    ) == (True, hash_session_token("raw-session-token"))
+    expected = AuthSession.token_hash == hash_session_token("raw-session-token")
+
+    assert predicate.compare(expected)
 
 
 @pytest.mark.unit
