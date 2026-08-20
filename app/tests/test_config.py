@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pytest import MonkeyPatch
 
-CONFIG_PATH = Path(__file__).parents[1] / "config.py"
+CONFIG_PATH = Path(__file__).parents[1] / "web_practice" / "config.py"
 
 
 def load_config() -> dict[str, object]:

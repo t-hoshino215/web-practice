@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 from pwdlib import PasswordHash
 
-from config import SESSION_LIFETIME
+from web_practice.config import SESSION_LIFETIME
 
 # ----------------------------------------------
 # パスワードハッシュの設定

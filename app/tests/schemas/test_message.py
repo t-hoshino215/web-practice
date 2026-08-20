@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from schemas import MessageCreate, MessageRead
+from web_practice.schemas import MessageCreate, MessageRead
 
 
 @pytest.mark.unit

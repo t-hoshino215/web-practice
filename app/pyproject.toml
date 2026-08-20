@@ -34,7 +34,7 @@ markers = [
 [tool.coverage.run]
 branch = true
 relative_files = true
-source = ["."]
+source = ["web_practice"]
 omit = ["alembic/*", "tests/*"]
 
 [tool.coverage.report]

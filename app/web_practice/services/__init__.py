@@ -1,4 +1,4 @@
-from services.auth import (
+from web_practice.services.auth import (
     create_session_expiration,
     generate_csrf_token,
     generate_session_token,

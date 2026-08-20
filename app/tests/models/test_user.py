@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from models import User
 from tests.factories import create_user
+from web_practice.models import User
 
 
 @pytest.mark.integration

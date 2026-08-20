@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from schemas import LoginRequest, LoginResponse, UserResponse
+from web_practice.schemas import LoginRequest, LoginResponse, UserResponse
 
 
 @pytest.mark.unit

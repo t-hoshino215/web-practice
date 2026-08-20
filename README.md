@@ -8,32 +8,35 @@ Webサーバーの構築と公開の練習用レポジトリ
 
 ```text
 app/
-├── main.py
-├── database.py
-├── config.py
-├── models/
+├── web_practice/
 │   ├── __init__.py
-│   ├── message.py
-│   ├── user.py
-│   └── auth_session.py
-├── schemas/
-│   ├── __init__.py
-│   ├── message.py
-│   ├── user.py
-│   └── auth.py
-├── dependencies/
-│   ├── __init__.py
-│   ├── auth.py
-│   └── csrf.py
-├── routers/
-│   ├── __init__.py
-│   ├── health.py
-│   ├── messages.py
-│   ├── users.py
-│   └── auth.py
-├── services/
-│   ├── __init__.py
-│   └── auth.py
+│   ├── main.py
+│   ├── database.py
+│   ├── config.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── message.py
+│   │   ├── user.py
+│   │   └── auth_session.py
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   ├── message.py
+│   │   ├── user.py
+│   │   └── auth.py
+│   ├── dependencies/
+│   │   ├── __init__.py
+│   │   ├── auth.py
+│   │   └── csrf.py
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── health.py
+│   │   ├── messages.py
+│   │   ├── users.py
+│   │   └── auth.py
+│   └── services/
+│       ├── __init__.py
+│       └── auth.py
+├── tests/
 ├── alembic.ini
 ├── alembic/
 ├── pyproject.toml
@@ -43,22 +46,22 @@ app/
 ## Data Flow
 
 ```text
-main.py
+web_practice/main.py
   ↓ FastAPIアプリを組み立てるだけ
 
-routers/
+web_practice/routers/
   ↓ HTTP API
 
-services/
+web_practice/services/
   ↓ 認証などのアプリ内部処理
 
-schemas/
+web_practice/schemas/
   ↓ API入出力のPydanticモデル
 
-models/
+web_practice/models/
   ↓ SQLAlchemy DBモデル
 
-database.py
+web_practice/database.py
   ↓ DB接続・Session・Base
 ```
 

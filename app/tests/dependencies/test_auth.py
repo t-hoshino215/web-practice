@@ -7,9 +7,9 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from dependencies.auth import get_current_auth_session, get_current_user, require_admin
-from models import AuthSession, User
-from services import hash_session_token
+from web_practice.dependencies.auth import get_current_auth_session, get_current_user, require_admin
+from web_practice.models import AuthSession, User
+from web_practice.services import hash_session_token
 
 
 def assert_http_error(error: pytest.ExceptionInfo[HTTPException], status_code: int, detail: str) -> None:

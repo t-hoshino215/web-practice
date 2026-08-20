@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from database import engine
-from routers import admin_router, auth_router, health_router, messages_router, users_router
+from web_practice.database import engine
+from web_practice.routers import admin_router, auth_router, health_router, messages_router, users_router
 
 
 @asynccontextmanager

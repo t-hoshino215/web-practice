@@ -14,7 +14,7 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database import Base
+from web_practice.database import Base
 
 
 class User(Base):

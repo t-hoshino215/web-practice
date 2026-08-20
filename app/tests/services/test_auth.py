@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 from pytest import MonkeyPatch
 
-from config import SESSION_LIFETIME
-from services import auth
+from web_practice.config import SESSION_LIFETIME
+from web_practice.services import auth
 
 
 @pytest.mark.unit

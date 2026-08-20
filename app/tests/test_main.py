@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI
 from pytest import MonkeyPatch
 
-import main
+from web_practice import main
 
 
 @pytest.mark.unit

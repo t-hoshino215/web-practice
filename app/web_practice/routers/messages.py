@@ -5,10 +5,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 
-from database import DbSession
-from dependencies import CurrentUser, require_csrf
-from models import Message
-from schemas import MessageCreate, MessageRead
+from web_practice.database import DbSession
+from web_practice.dependencies import CurrentUser, require_csrf
+from web_practice.models import Message
+from web_practice.schemas import MessageCreate, MessageRead
 
 # ルーター設定
 router = APIRouter(

@@ -7,8 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from models import AuthSession
 from tests.factories import create_auth_session, create_user
+from web_practice.models import AuthSession
 
 
 @pytest.mark.integration

@@ -5,10 +5,10 @@
 from fastapi import APIRouter
 from sqlalchemy import select
 
-from database import DbSession
-from dependencies import CurrentAdmin
-from models import Message, User
-from schemas import MessageRead, UserResponse
+from web_practice.database import DbSession
+from web_practice.dependencies import CurrentAdmin
+from web_practice.models import Message, User
+from web_practice.schemas import MessageRead, UserResponse
 
 # ルーター設定
 router = APIRouter(

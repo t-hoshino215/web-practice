@@ -10,11 +10,11 @@ from pytest import MonkeyPatch
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from dependencies.auth import get_current_auth_session
-from models import AuthSession
-from routers import auth as auth_router
-from services import hash_password, hash_session_token
 from tests.factories import create_auth_session, create_user
+from web_practice.dependencies.auth import get_current_auth_session
+from web_practice.models import AuthSession
+from web_practice.routers import auth as auth_router
+from web_practice.services import hash_password, hash_session_token
 
 
 def login_successfully(

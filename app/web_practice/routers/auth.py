@@ -7,12 +7,12 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
 
-from config import COOKIE_SECURE, SESSION_COOKIE_NAME, SESSION_LIFETIME
-from database import DbSession
-from dependencies import require_csrf
-from models import AuthSession, User
-from schemas import LoginRequest, LoginResponse, UserResponse
-from services import (
+from web_practice.config import COOKIE_SECURE, SESSION_COOKIE_NAME, SESSION_LIFETIME
+from web_practice.database import DbSession
+from web_practice.dependencies import require_csrf
+from web_practice.models import AuthSession, User
+from web_practice.schemas import LoginRequest, LoginResponse, UserResponse
+from web_practice.services import (
     create_session_expiration,
     generate_csrf_token,
     generate_session_token,

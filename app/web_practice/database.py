@@ -10,7 +10,7 @@ from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from config import DATABASE_URL
+from web_practice.config import DATABASE_URL
 
 
 class Base(DeclarativeBase):

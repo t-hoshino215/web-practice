@@ -6,9 +6,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from dependencies.auth import get_current_auth_session, get_current_user
-from models import AuthSession, Message, User
 from tests.factories import create_auth_session, create_message, create_user
+from web_practice.dependencies.auth import get_current_auth_session, get_current_user
+from web_practice.models import AuthSession, Message, User
 
 
 def authenticate(

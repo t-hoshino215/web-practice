@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest import MonkeyPatch
 
-import database
+from web_practice import database
 
 APP_DIR = Path(__file__).parents[1]
 
@@ -67,7 +67,7 @@ def test_conftest_forces_global_engine_to_sqlite() -> None:
         [
             sys.executable,
             "-c",
-            "import os, sys; sys.path.insert(0, '.'); import tests.conftest; import database; "
+            "import os, sys; sys.path.insert(0, '.'); import tests.conftest; from web_practice import database; "
             "print(database.engine.url); print(os.environ['PYTEST_AMBIENT_DATABASE_URL'])",
         ],
         cwd=APP_DIR,

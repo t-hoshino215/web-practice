@@ -16,7 +16,7 @@ Use `pytest` as the testing framework for Python projects.
 uv run pytest
 
 # Check coverage
-uv run pytest --cov=src --cov-report=term-missing
+uv run pytest --cov=web_practice --cov-report=term-missing
 ```
 
 ## Naming conventions

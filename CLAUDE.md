@@ -26,8 +26,8 @@ Webサーバーの構築と公開を段階的に練習している。
 
 ## Project Structure
 
-- ソースコード: `app/`
-- テスト: `app/tests/`（app/ のディレクトリ構造をミラー）
+- ソースコード: `app/web_practice/`
+- テスト: `app/tests/`（app/web_practice/ のディレクトリ構造をミラー）
 - テストフィクスチャ: `app/tests/conftest.py` , `app/tests/factories/`
 - ドキュメント: `docs/`
 - コーディングルール: `.claude/rules/code-style.md` , `.claude/rules/python-style.md`

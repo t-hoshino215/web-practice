@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from models import AuthSession, Message, User
-from services import hash_csrf_token, hash_session_token
+from web_practice.models import AuthSession, Message, User
+from web_practice.services import hash_csrf_token, hash_session_token
 
 
 def create_user(

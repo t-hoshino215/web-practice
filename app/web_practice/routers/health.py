@@ -6,7 +6,7 @@ FastAPIのルートエンドポイントを定義する
 from fastapi import APIRouter
 from sqlalchemy import text
 
-from database import DbSession
+from web_practice.database import DbSession
 
 # ルーター設定
 router = APIRouter()

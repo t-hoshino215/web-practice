@@ -10,12 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from dependencies.auth import get_current_user
-from models import User
-from routers import users as users_router
-from schemas import UserCreate
-from services import verify_password
 from tests.factories import create_user
+from web_practice.dependencies.auth import get_current_user
+from web_practice.models import User
+from web_practice.routers import users as users_router
+from web_practice.schemas import UserCreate
+from web_practice.services import verify_password
 
 
 @pytest.mark.integration

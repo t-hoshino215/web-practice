@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from schemas import UserCreate, UserResponse
+from web_practice.schemas import UserCreate, UserResponse
 
 
 @pytest.mark.unit

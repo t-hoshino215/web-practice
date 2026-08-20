@@ -31,9 +31,9 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-import models  # noqa: F401
-from database import Base, get_db
-from main import create_app
+import web_practice.models  # noqa: F401
+from web_practice.database import Base, get_db
+from web_practice.main import create_app
 
 
 @pytest.fixture

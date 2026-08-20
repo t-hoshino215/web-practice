@@ -6,8 +6,8 @@ from typing import Annotated
 
 from fastapi import Header, HTTPException, status
 
-from dependencies import CurrentAuthSession
-from services import is_valid_csrf_token
+from web_practice.dependencies import CurrentAuthSession
+from web_practice.services import is_valid_csrf_token
 
 # X-CSRF-Token HTTPヘッダーからCSRFトークンを取得する。
 CsrfTokenHeader = Annotated[

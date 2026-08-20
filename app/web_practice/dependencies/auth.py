@@ -21,10 +21,10 @@ from typing import Annotated
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy import select
 
-from config import SESSION_COOKIE_NAME
-from database import DbSession
-from models import AuthSession, User
-from services import hash_session_token
+from web_practice.config import SESSION_COOKIE_NAME
+from web_practice.database import DbSession
+from web_practice.models import AuthSession, User
+from web_practice.services import hash_session_token
 
 # ----------------------------------------------
 # 認証セッション

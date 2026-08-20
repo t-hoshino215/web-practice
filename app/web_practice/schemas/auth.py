@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel, Field
 
-from schemas.user import UserResponse
+from web_practice.schemas.user import UserResponse
 
 
 class LoginRequest(BaseModel):

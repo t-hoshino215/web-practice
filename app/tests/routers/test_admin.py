@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from dependencies.auth import get_current_user
 from tests.factories import create_message, create_user
+from web_practice.dependencies.auth import get_current_user
 
 
 @pytest.mark.integration

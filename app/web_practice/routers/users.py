@@ -6,11 +6,11 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from database import DbSession
-from dependencies import CurrentUser
-from models import User
-from schemas import UserCreate, UserResponse
-from services import hash_password, normalize_username
+from web_practice.database import DbSession
+from web_practice.dependencies import CurrentUser
+from web_practice.models import User
+from web_practice.schemas import UserCreate, UserResponse
+from web_practice.services import hash_password, normalize_username
 
 # ルーター設定
 router = APIRouter(

@@ -5,9 +5,9 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi import HTTPException
 
-from dependencies.csrf import require_csrf
-from models import AuthSession
-from services import hash_csrf_token
+from web_practice.dependencies.csrf import require_csrf
+from web_practice.models import AuthSession
+from web_practice.services import hash_csrf_token
 
 
 def make_auth_session() -> AuthSession:
