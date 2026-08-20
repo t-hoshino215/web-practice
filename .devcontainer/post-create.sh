@@ -2,5 +2,6 @@
 # Runs once after container creation.
 set -euo pipefail
 echo "Installing dependencies..."
-cd __CONTAINER_WORKSPACE__ && uv sync
+cd /workspace/app && uv sync
+cd /workspace
 echo "Done."

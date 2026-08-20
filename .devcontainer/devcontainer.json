@@ -29,7 +29,7 @@
       ]
     }
   },
-  "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh 2>/dev/null || true",
+  "postCreateCommand": "bash .devcontainer/post-create.sh 2>/dev/null || true",
   "postStartCommand": "echo 'Python: '$(python --version 2>/dev/null || echo 'N/A') ' | uv: '$(uv --version)",
   "remoteUser": "dworker"
 }
