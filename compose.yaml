@@ -30,10 +30,10 @@ services:
         target: ${CONTAINER_WORKSPACE:-/workspace}
         bind:
           create_host_path: false
-      # このサービス専用の.venv
+      # このサービス専用の.venv（バインドマウント外に置き、ホストを汚さない）
       - type: volume
         source: web-practice-dev-venv
-        target: ${CONTAINER_WORKSPACE:-/workspace}/app/.venv
+        target: /opt/venv
       # 全コンテナで共有のUVキャッシュ
       - type: volume
         source: uv-cache
