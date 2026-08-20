@@ -10,7 +10,7 @@ DEV_SERVICES := \
 	dev
 OWNER ?= $(USER_NAME):$(USER_NAME)
 CHOWN_PATHS := \
-	/$(CONTAINER_WORKSPACE) \
+	$(CONTAINER_WORKSPACE)/app/.venv \
 	/home/$(USER_NAME)/.local \
 	/home/$(USER_NAME)/.cache
 

@@ -32,8 +32,8 @@ services:
           create_host_path: false
       # このサービス専用の.venv
       - type: volume
-        source: web-practice-venv
-        target: ${CONTAINER_WORKSPACE:-/workspace}/.venv
+        source: web-practice-dev-venv
+        target: ${CONTAINER_WORKSPACE:-/workspace}/app/.venv
       # 全コンテナで共有のUVキャッシュ
       - type: volume
         source: uv-cache
@@ -108,8 +108,8 @@ services:
 
 # --- Named volumes ---
 volumes:
-  web-practice-venv:
-    name: web-practice-venv
+  web-practice-dev-venv:
+    name: web-practice-dev-venv
   uv-cache:
     external: true
     name: uv-cache
