@@ -83,6 +83,20 @@ def test_login_sets_hardened_session_cookie(
 
 
 @pytest.mark.integration
+def test_login_sets_secure_cookie_when_enabled(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """HTTPS deployments should add Secure to the session cookie."""
+    monkeypatch.setattr(auth_router, "COOKIE_SECURE", True)
+
+    response = login_successfully(client, db_session, monkeypatch)
+
+    assert "Secure" in response.headers["set-cookie"]
+
+
+@pytest.mark.integration
 def test_login_rejects_unknown_user(client: TestClient) -> None:
     """Unknown usernames should receive the generic credential failure."""
     response = client.post("/login", json={"username": "missing", "password": "password123"})

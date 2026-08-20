@@ -8,8 +8,17 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
-os.environ.setdefault("COOKIE_SECURE", "false")
+AMBIENT_DATABASE_URL_ENV = "PYTEST_AMBIENT_DATABASE_URL"
+ambient_database_url = os.environ.get("DATABASE_URL")
+if ambient_database_url is None:
+    os.environ.pop(AMBIENT_DATABASE_URL_ENV, None)
+else:
+    os.environ[AMBIENT_DATABASE_URL_ENV] = ambient_database_url
+
+# Application modules create their global engine at import time, so force an
+# isolated URL before importing any application code.
+os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+os.environ["COOKIE_SECURE"] = "false"
 APP_DIR = Path(__file__).parents[1] / "app"
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))

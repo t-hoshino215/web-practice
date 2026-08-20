@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from dependencies.auth import get_current_auth_session, get_current_user, require_admin
 from models import AuthSession, User
+from services import hash_session_token
 
 
 def assert_http_error(error: pytest.ExceptionInfo[HTTPException], status_code: int, detail: str) -> None:
@@ -50,6 +51,24 @@ def test_auth_dependencies_reject_unknown_session(dependency: object) -> None:
         dependency(db, "unknown-token")  # type: ignore[operator]
 
     assert_http_error(error, 401, "Invalid session")
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("dependency", [get_current_auth_session, get_current_user])
+def test_auth_dependencies_query_hashed_cookie_on_token_column(dependency: object) -> None:
+    """Session lookup must filter the token column by the cookie's hash."""
+    db = MagicMock(spec=Session)
+    db.scalar.return_value = None
+
+    with pytest.raises(HTTPException):
+        dependency(db, "raw-session-token")  # type: ignore[operator]
+
+    statement = db.scalar.call_args.args[0]
+    predicate = statement.whereclause
+    assert (
+        predicate.left.compare(AuthSession.__table__.c.token_hash),
+        predicate.right.value,
+    ) == (True, hash_session_token("raw-session-token"))
 
 
 @pytest.mark.unit

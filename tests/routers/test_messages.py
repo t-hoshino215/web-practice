@@ -113,6 +113,27 @@ def test_archive_message_marks_owned_message(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    ("headers", "detail"),
+    [({}, "CSRF token required"), ({"X-CSRF-Token": "wrong-token"}, "Invalid CSRF token")],
+)
+def test_archive_message_rejects_invalid_csrf(
+    client: TestClient,
+    test_app: FastAPI,
+    db_session: Session,
+    headers: dict[str, str],
+    detail: str,
+) -> None:
+    """Archiving should reject both missing and mismatched CSRF tokens."""
+    user, _ = authenticate(client, test_app, db_session)
+    message = create_message(db_session, user=user)
+
+    response = client.patch(f"/messages/{message.id}/archive", headers=headers)
+
+    assert (response.status_code, response.json()) == (403, {"detail": detail})
+
+
+@pytest.mark.integration
 def test_archive_message_hides_other_users_message(
     client: TestClient,
     test_app: FastAPI,

@@ -6,12 +6,15 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from dependencies.auth import get_current_user
+from models import User
 from routers import users as users_router
 from schemas import UserCreate
+from services import verify_password
 from tests.factories import create_user
 
 
@@ -29,6 +32,25 @@ def test_create_user_response_hides_password(client: TestClient) -> None:
     response = client.post("/users", json={"username": "alice", "password": "password123"})
 
     assert set(response.json()) == {"id", "username", "role", "created_at"}
+
+
+@pytest.mark.integration
+def test_create_user_hashes_password_before_persisting(client: TestClient, db_session: Session) -> None:
+    """Registration should store a verifiable hash and never the plaintext password."""
+    plaintext = "password123"
+
+    response = client.post("/users", json={"username": "alice", "password": plaintext})
+    user = db_session.scalar(select(User).where(User.username == "alice"))
+
+    assert (
+        response.status_code == 201
+        and user is not None
+        and (
+            user.password_hash != plaintext,
+            verify_password(plaintext, user.password_hash),
+        )
+        == (True, True)
+    )
 
 
 @pytest.mark.integration

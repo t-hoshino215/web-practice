@@ -14,6 +14,7 @@ from sqlalchemy.engine import make_url
 
 APP_DIR = Path(__file__).parents[2] / "app"
 ALEMBIC_INI = APP_DIR / "alembic.ini"
+AMBIENT_DATABASE_URL_ENV = "PYTEST_AMBIENT_DATABASE_URL"
 EXPECTED_CHAIN = [
     ("081ce138bdf1", "91c6f022b77c"),
     ("91c6f022b77c", "639486243669"),
@@ -46,13 +47,13 @@ def require_safe_postgresql_url() -> str:
 
     url = make_url(value)
     database = url.database or ""
-    ambient_url = os.getenv("DATABASE_URL")
+    ambient_url = os.getenv(AMBIENT_DATABASE_URL_ENV)
     if url.get_backend_name() != "postgresql":
         pytest.fail("TEST_DATABASE_URL must use PostgreSQL")
     if not (database.startswith("test_") or database.endswith("_test")):
         pytest.fail("TEST_DATABASE_URL database name must start with test_ or end with _test")
     if ambient_url is not None and make_url(ambient_url) == url:
-        pytest.fail("TEST_DATABASE_URL must not equal DATABASE_URL")
+        pytest.fail("TEST_DATABASE_URL must not equal the ambient DATABASE_URL")
 
     local_hosts = {None, "localhost", "127.0.0.1", "::1", "postgres", "db"}
     remote_allowed = os.getenv("ALLOW_REMOTE_TEST_DATABASE") == "1"
@@ -122,11 +123,12 @@ def test_live_migration_rejects_unsafe_url(
 ) -> None:
     """Unsafe dialect, name, ambient reuse, and remote host settings should fail."""
     monkeypatch.setenv("TEST_DATABASE_URL", test_url)
+    monkeypatch.setenv("DATABASE_URL", "sqlite+pysqlite:///:memory:")
     monkeypatch.delenv("ALLOW_REMOTE_TEST_DATABASE", raising=False)
     if ambient_url is None:
-        monkeypatch.delenv("DATABASE_URL", raising=False)
+        monkeypatch.delenv(AMBIENT_DATABASE_URL_ENV, raising=False)
     else:
-        monkeypatch.setenv("DATABASE_URL", ambient_url)
+        monkeypatch.setenv(AMBIENT_DATABASE_URL_ENV, ambient_url)
 
     with pytest.raises(pytest.fail.Exception):
         require_safe_postgresql_url()

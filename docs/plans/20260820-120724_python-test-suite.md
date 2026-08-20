@@ -135,9 +135,9 @@
 - 統合テスト: SQLite 上の各 SQLAlchemy model と、dependency override を利用した全 FastAPI endpoint。PostgreSQL 専用 DB が明示された場合は Alembic upgrade/downgrade。
 - E2Eテスト: 今回はブラウザー/Caddy/Compose を対象外とする。TestClient 上で登録、login、認証済み操作、logout の HTTP 契約を個別に検証する。
 - 想定件数: 約 70〜80 ケース。境界値は `parametrize` にまとめる。
-- 検証コマンド:
-  - `cd app && uv run pytest`
-  - `cd app && uv run pytest --cov=. --cov-branch --cov-report=term-missing ../tests`
+- 検証コマンド（`app/pyproject.toml` を常に明示して marker・探索設定を有効にする）:
+  - `cd app && uv run pytest -c pyproject.toml`
+  - `cd app && uv run pytest -c pyproject.toml --cov=. --cov-branch --cov-report=term-missing`
   - `cd app && uv run ruff check . ../tests`
   - `cd app && uv run ruff format --check . ../tests`
   - `cd app && uv run mypy . ../tests`
@@ -162,7 +162,7 @@
 - [ ] `tests/` が `app/` の主要実行時構造をミラーし、fixture と factory が共通化されている。
 - [ ] 認証・CSRF・Cookie・所有権・権限・入力境界・DB 制約の正常系と異常系がテストされている。
 - [ ] Alembic revision chain が常時検証され、専用 PostgreSQL URL がある環境では upgrade/downgrade が検証できる。
-- [ ] `cd app && uv run pytest` が失敗 0 件で完了する。
+- [ ] `cd app && uv run pytest -c pyproject.toml` が失敗 0 件で完了する。
 - [ ] branch coverage の未検証箇所を確認し、重要な分岐に抜けがない。
 - [ ] ruff check、ruff format check、mypy がすべて成功する。
 - [ ] 既存アプリコードへの変更は、テストで確認された不具合修正に限定される。
