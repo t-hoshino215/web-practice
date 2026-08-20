@@ -1,4 +1,65 @@
 services:
+
+  dev:
+    profiles:
+      - dev
+    container_name: web-practice-dev
+    hostname: web-practice-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+      args:
+        USER_NAME: ${USER_NAME:-dworker}
+        USER_UID: ${USER_UID:-1001}
+        USER_GID: ${USER_GID:-1001}
+        CONTAINER_WORKSPACE: ${CONTAINER_WORKSPACE:-/workspace}
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.14}
+        UV_VERSION: ${UV_VERSION:-0.12.5}
+        NODE_VERSION: ${NODE_VERSION:-24}
+        TZ: ${TZ:-UTC}
+    working_dir: ${CONTAINER_WORKSPACE:-/workspace}
+    image: web-practice-dev:dev
+    init: true
+    tty: true
+    stdin_open: true
+    volumes:
+      # バックエンドのソースコードや設定ファイルをコンテナにバインドマウント
+      - type: bind
+        source: ${PROJECT_DIR:-${PWD}}
+        target: ${CONTAINER_WORKSPACE:-/workspace}
+        bind:
+          create_host_path: false
+      # このサービス専用の.venv
+      - type: volume
+        source: web-practice-venv
+        target: ${CONTAINER_WORKSPACE:-/workspace}/.venv
+      # 全コンテナで共有のUVキャッシュ
+      - type: volume
+        source: uv-cache
+        target: /home/${USER_NAME}/.cache/uv
+      # 全コンテナで共有のclaudeの設定
+      - type: volume
+        source: claude-config
+        target: /home/${USER_NAME}/.claude
+      # ホストの設定ファイルをコンテナにバインドマウント
+      - ${SHARED_DATA_DIR}:${CONTAINER_SHARED_DATA}:ro
+      - ${HOME}/.zshrc:/home/${USER_NAME}/.zshrc:ro
+      - ${HOME}/.oh-my-zsh:/home/${USER_NAME}/.oh-my-zsh:ro
+      - ${HOME}/.p10k.zsh:/home/${USER_NAME}/.p10k.zsh:ro
+      - ${HOME}/.config/zsh-abbr/user-abbreviations:/home/${USER_NAME}/.config/zsh-abbr/user-abbreviations:ro
+      - ${HOME}/.gitconfig:/home/${USER_NAME}/.gitconfig:ro
+      - ${HOME}/.ssh:/home/${USER_NAME}/.ssh:ro
+      - ${HOME}/.codex:/home/${USER_NAME}/.codex
+    networks:
+      - dev-network
+    ports:
+      - '${HOST_BACKEND_PORT:-8000}:8000'
+    env_file:
+      - ./.env
+    environment:
+      PORT: 8000
+      TZ: ${TZ:-UTC}
   app:
     build:
       context: ./app
@@ -45,7 +106,22 @@ services:
       - app
     restart: unless-stopped
 
+# --- Named volumes ---
 volumes:
+  web-practice-venv:
+    name: web-practice-venv
+  uv-cache:
+    external: true
+    name: uv-cache
+  claude-config:
+    external: true
+    name: claude-config
   postgres_data:
   caddy_data:
   caddy_config:
+
+# --- Networks ---
+networks:
+  dev-network:
+    external: true
+    name: dev-network
