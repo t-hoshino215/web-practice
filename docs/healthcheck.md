@@ -99,12 +99,21 @@ curl -i \
 ```text
 200 OK
 Set-Cookie: session=...
+
+{"user":..., "csrf_token":"..."}
 ```
 
 Cookie確認：
 
 ```bash
 cat "$COOKIE_FILE"
+```
+
+### CSRFトークンを記録
+
+```bash
+CSRF_TOKEN=<ログインレスポンスのJSONに含まれるcsrf_tokenの値>
+echo "CSRF_TOKEN=$CSRF_TOKEN"
 ```
 
 ### [local] Cookieなし `/users/me`
@@ -141,10 +150,40 @@ curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
 
 などが含まれれば認証成功です 🔐
 
-### [local] ログアウト
+### [local] ログアウト (CSRFトークンなし)
 
 ```bash
-curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -X POST "$BASE_URL/logout"
+curl -i -b "$COOKIE_FILE" -X POST "$BASE_URL/logout"
+```
+
+期待値：
+
+```text
+403 Forbidden
+...
+
+{"detail":"CSRF token required"}
+```
+
+### [local] ログアウト (無効なCSRFトークン)
+
+```bash
+curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: invalid-token" -X POST "$BASE_URL/logout"
+```
+
+期待値：
+
+```text
+403 Forbidden
+...
+
+{"detail":"Invalid CSRF token"}
+```
+
+### [local] ログアウト (CSRFトークンあり)
+
+```bash
+curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/logout"
 ```
 
 期待値：
