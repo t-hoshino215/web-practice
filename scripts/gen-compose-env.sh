@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-cat > .env.dev <<ENV
+cat > .env <<ENV
 USER_NAME=$(id -un)
 USER_UID=$(id -u)
 USER_GID=$(id -g)
