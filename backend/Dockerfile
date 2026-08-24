@@ -23,6 +23,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --no-dev \
     --no-install-project
 
+COPY src/ ./src/
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync \
+    --locked \
+    --no-dev
+
 # ----------------------------------------------
 # Runtime stage
 # ----------------------------------------------
@@ -48,4 +55,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "web_practice.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "web_practice.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips='*'"]
