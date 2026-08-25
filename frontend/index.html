@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Practice</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <!-- type="module" のスクリプトは自動で defer されるため、DOM構築後に実行される -->
+    <script type="module" src="/js/main.js"></script>
+  </head>
+  <body>
+    <header class="header">
+      <h1 class="header__title">Web Practice</h1>
+      <div class="header__user" id="header-user" hidden>
+        <span id="current-username"></span>
+        <button type="button" id="logout-button">ログアウト</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <p class="notice" id="notice" hidden></p>
+
+      <section class="panel" id="auth-panel" hidden>
+        <h2 class="panel__title">ログイン / ユーザー登録</h2>
+        <form class="form" id="auth-form">
+          <label class="form__label" for="username">ユーザー名</label>
+          <input
+            class="form__input"
+            id="username"
+            name="username"
+            type="text"
+            required
+            minlength="3"
+            maxlength="50"
+            pattern="[A-Za-z0-9_-]+"
+            autocomplete="username"
+          />
+
+          <label class="form__label" for="password">パスワード</label>
+          <input
+            class="form__input"
+            id="password"
+            name="password"
+            type="password"
+            required
+            minlength="8"
+            maxlength="128"
+            autocomplete="current-password"
+          />
+
+          <div class="form__actions">
+            <button class="button button--primary" type="submit">ログイン</button>
+            <button class="button" type="button" id="register-button">新規登録</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" id="messages-panel" hidden>
+        <h2 class="panel__title">メッセージ</h2>
+        <form class="form form--inline" id="message-form">
+          <input
+            class="form__input"
+            id="message-text"
+            name="text"
+            type="text"
+            required
+            maxlength="255"
+            placeholder="メッセージを入力"
+          />
+          <button class="button button--primary" type="submit">追加</button>
+        </form>
+
+        <ul class="message-list" id="message-list"></ul>
+        <p class="message-list__empty" id="message-empty" hidden>メッセージはまだありません。</p>
+      </section>
+    </main>
+  </body>
+</html>
