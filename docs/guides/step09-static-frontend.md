@@ -211,11 +211,11 @@ grep -nE '(\$BASE_URL|^(GET|POST|PATCH|DELETE) +)/(health|db-health|login|logout
 ### 手順 6: 起動して確認する
 
 ```bash
-docker compose build backend
-docker compose up -d backend
+docker compose --env-file ./backend/.env build backend
+docker compose --env-file ./backend/.env up -d backend
 
-curl -i http://localhost/api/health      # → 200
-curl -i http://localhost/health          # → 404（移行できている証拠）
+curl -i http://localhost/api/health      # → 200 OK
+curl -i http://localhost/health          # → 404 Not Found（移行できている証拠）
 ```
 
 ブラウザで `http://localhost/api/docs` を開き、Swagger UI が表示されることも確認する。

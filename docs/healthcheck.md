@@ -13,10 +13,10 @@ COOKIE_FILE="/tmp/web-practice-cookies.txt"
 
 ```bash
 # FastAPI / Caddy の疎通確認
-curl -i "$BASE_URL/health"
+curl -i "$BASE_URL/api/health"
 
 # PostgreSQL接続確認
-curl -i "$BASE_URL/db-health"
+curl -i "$BASE_URL/api/db-health"
 ```
 
 どちらも基本的に、
@@ -33,7 +33,7 @@ HTTP/1.1 200 OK
 
 ```bash
 curl -i \
-  "$BASE_URL/users" \
+  "$BASE_URL/api/users" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "healthcheckuser",
@@ -59,7 +59,7 @@ curl -i \
 
 ```bash
 curl -i \
-  "$BASE_URL/login" \
+  "$BASE_URL/api/login" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "healthcheckuser",
@@ -86,7 +86,7 @@ rm -f "$COOKIE_FILE"
 ```bash
 curl -i \
   -c "$COOKIE_FILE" \
-  "$BASE_URL/login" \
+  "$BASE_URL/api/login" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "healthcheckuser",
@@ -119,7 +119,7 @@ echo "CSRF_TOKEN=$CSRF_TOKEN"
 ### [local] Cookieなし `/users/me`
 
 ```bash
-curl -i "$BASE_URL/users/me"
+curl -i "$BASE_URL/api/users/me"
 ```
 
 期待値：
@@ -131,7 +131,7 @@ curl -i "$BASE_URL/users/me"
 ### [local] Cookieあり `/users/me`
 
 ```bash
-curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
+curl -i -b "$COOKIE_FILE" "$BASE_URL/api/users/me"
 ```
 
 期待値：
@@ -153,7 +153,7 @@ curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
 ### [local] ログアウト (CSRFトークンなし)
 
 ```bash
-curl -i -b "$COOKIE_FILE" -X POST "$BASE_URL/logout"
+curl -i -b "$COOKIE_FILE" -X POST "$BASE_URL/api/logout"
 ```
 
 期待値：
@@ -168,7 +168,7 @@ curl -i -b "$COOKIE_FILE" -X POST "$BASE_URL/logout"
 ### [local] ログアウト (無効なCSRFトークン)
 
 ```bash
-curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: invalid-token" -X POST "$BASE_URL/logout"
+curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: invalid-token" -X POST "$BASE_URL/api/logout"
 ```
 
 期待値：
@@ -183,7 +183,7 @@ curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: invalid-token" -X POST "$BASE_URL/lo
 ### [local] ログアウト (CSRFトークンあり)
 
 ```bash
-curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/logout"
+curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/api/logout"
 ```
 
 期待値：
@@ -195,7 +195,7 @@ curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/logo
 ログアウト後：
 
 ```bash
-curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
+curl -i -b "$COOKIE_FILE" "$BASE_URL/api/users/me"
 ```
 
 期待値：
@@ -220,9 +220,9 @@ COOKIE_FILE="/tmp/web-practice-public-cookies.txt"
 ### [public] 基本ヘルスチェック
 
 ```bash
-curl -i "$BASE_URL/health"
+curl -i "$BASE_URL/api/health"
 
-curl -i "$BASE_URL/db-health"
+curl -i "$BASE_URL/api/db-health"
 ```
 
 両方、
@@ -249,7 +249,7 @@ PostgreSQL
 
 ```bash
 curl -i \
-  "$BASE_URL/users" \
+  "$BASE_URL/api/users" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "publichealthcheck",
@@ -276,7 +276,7 @@ rm -f "$COOKIE_FILE"
 
 curl -i \
   -c "$COOKIE_FILE" \
-  "$BASE_URL/login" \
+  "$BASE_URL/api/login" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "publichealthcheck",
@@ -311,7 +311,7 @@ Set-Cookie: session=...; Path=/; Max-Age=...; Secure; HttpOnly; SameSite=lax
 ### [public] Cookie認証
 
 ```bash
-curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
+curl -i -b "$COOKIE_FILE" "$BASE_URL/api/users/me"
 ```
 
 期待値：
@@ -323,7 +323,7 @@ curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
 ### [public] ログアウト
 
 ```bash
-curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -X POST "$BASE_URL/logout"
+curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -X POST "$BASE_URL/api/logout"
 ```
 
 期待値：
@@ -335,7 +335,7 @@ curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -X POST "$BASE_URL/logout"
 さらに、
 
 ```bash
-curl -i -b "$COOKIE_FILE" "$BASE_URL/users/me"
+curl -i -b "$COOKIE_FILE" "$BASE_URL/api/users/me"
 ```
 
 で、
@@ -371,23 +371,23 @@ docker compose exec db sh -lc \
 ## 最低限これだけ通れば全体OK
 
 ```text
-GET  /health          → 200
-GET  /db-health       → 200
+GET  /api/health          → 200
+GET  /api/db-health       → 200
 
-POST /users           → 201
+POST /api/users           → 201
 同じユーザー再登録     → 409
 
-POST /login
+POST /api/login
   間違ったpassword    → 401
   正しいpassword      → 200 + Cookie
 
-GET  /users/me
+GET  /api/users/me
   Cookieなし          → 401
   Cookieあり          → 200
 
-POST /logout          → 204
+POST /api/logout          → 204
 
-GET  /users/me
+GET  /api/users/me
   ログアウト後        → 401
 ```
 

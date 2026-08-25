@@ -5,11 +5,12 @@ FastAPIの作成、ルーターの登録、ライフサイクル管理を行う
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
 from web_practice.database import engine
 from web_practice.routers import admin_router, auth_router, health_router, messages_router, users_router
 
+_API_PREFIX = "/api"
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -25,15 +26,24 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     """FastAPIアプリケーションを生成し、各ルーターを登録する。"""
+    # 静的フロントエンドをルート直下で配信するため、APIドキュメントのURLを/api配下へ寄せる。
     app = FastAPI(
         lifespan=lifespan,
+        docs_url=f"{_API_PREFIX}/docs",
+        redoc_url=f"{_API_PREFIX}/redoc",
+        openapi_url=f"{_API_PREFIX}/openapi.json",
     )
 
-    app.include_router(health_router)
-    app.include_router(messages_router)
-    app.include_router(users_router)
-    app.include_router(admin_router)
-    app.include_router(auth_router)
+    # APIも/api配下に寄せる。
+    api_router = APIRouter(prefix=_API_PREFIX)
+
+    api_router.include_router(health_router)
+    api_router.include_router(messages_router)
+    api_router.include_router(users_router)
+    api_router.include_router(admin_router)
+    api_router.include_router(auth_router)
+
+    app.include_router(api_router)
 
     return app
 

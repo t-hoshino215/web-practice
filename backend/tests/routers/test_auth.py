@@ -28,7 +28,7 @@ def login_successfully(
     monkeypatch.setattr(auth_router, "generate_csrf_token", lambda: "raw-csrf-token")
     return cast(
         Response,
-        client.post("/login", json={"username": " ALICE ", "password": "password123"}),
+        client.post("/api/login", json={"username": " ALICE ", "password": "password123"}),
     )
 
 
@@ -112,7 +112,7 @@ def test_login_sets_secure_cookie_when_enabled(
 @pytest.mark.integration
 def test_login_rejects_unknown_user(client: TestClient) -> None:
     """Unknown usernames should receive the generic credential failure."""
-    response = client.post("/login", json={"username": "missing", "password": "password123"})
+    response = client.post("/api/login", json={"username": "missing", "password": "password123"})
 
     assert (response.status_code, response.json()) == (
         401,
@@ -125,7 +125,7 @@ def test_login_rejects_wrong_password(client: TestClient, db_session: Session) -
     """Wrong passwords should receive the same generic credential failure."""
     create_user(db_session, username="alice", password_hash=hash_password("correct-password"))
 
-    response = client.post("/login", json={"username": "alice", "password": "wrong-password"})
+    response = client.post("/api/login", json={"username": "alice", "password": "wrong-password"})
 
     assert (response.status_code, response.json()) == (
         401,
@@ -163,7 +163,7 @@ def test_logout_deletes_session(
     """A valid logout should remove the persisted session."""
     auth_session = configure_logout(client, test_app, db_session)
 
-    response = client.post("/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
+    response = client.post("/api/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
 
     assert (response.status_code, db_session.get(AuthSession, auth_session.id)) == (
         204,
@@ -180,7 +180,7 @@ def test_logout_expires_cookie(
     """Logout should instruct the browser to delete its session cookie."""
     configure_logout(client, test_app, db_session)
 
-    response = client.post("/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
+    response = client.post("/api/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
 
     assert "Max-Age=0" in response.headers["set-cookie"]
 
@@ -194,7 +194,7 @@ def test_logout_requires_csrf(
     """An authenticated logout without a CSRF header should be forbidden."""
     configure_logout(client, test_app, db_session)
 
-    response = client.post("/logout")
+    response = client.post("/api/logout")
 
     assert (response.status_code, response.json()) == (
         403,
@@ -213,6 +213,6 @@ def test_logout_is_idempotent_without_matching_cookie_session(
     """The handler should safely clear cookies even when no DB session matches."""
     configure_logout(client, test_app, db_session, session_cookie=session_cookie)
 
-    response = client.post("/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
+    response = client.post("/api/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
 
     assert response.status_code == 204

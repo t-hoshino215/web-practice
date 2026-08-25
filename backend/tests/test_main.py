@@ -20,18 +20,18 @@ def test_create_app_registers_expected_routes() -> None:
     }
 
     assert {
-        ("GET", "/"),
-        ("GET", "/health"),
-        ("GET", "/db-health"),
-        ("GET", "/messages"),
-        ("POST", "/messages"),
-        ("PATCH", "/messages/{message_id}/archive"),
-        ("POST", "/users"),
-        ("GET", "/users/me"),
-        ("GET", "/admin/users"),
-        ("GET", "/admin/messages"),
-        ("POST", "/login"),
-        ("POST", "/logout"),
+        ("GET", "/api/"),
+        ("GET", "/api/health"),
+        ("GET", "/api/db-health"),
+        ("GET", "/api/messages"),
+        ("POST", "/api/messages"),
+        ("PATCH", "/api/messages/{message_id}/archive"),
+        ("POST", "/api/users"),
+        ("GET", "/api/users/me"),
+        ("GET", "/api/admin/users"),
+        ("GET", "/api/admin/messages"),
+        ("POST", "/api/login"),
+        ("POST", "/api/logout"),
     } <= routes
 
 

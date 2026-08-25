@@ -40,7 +40,7 @@ def test_list_messages_filters_owner_and_orders_by_id(
     second = create_message(db_session, user=user, text="second")
     create_message(db_session, user=other_user, text="hidden")
 
-    response = client.get("/messages")
+    response = client.get("/api/messages")
 
     assert [message["id"] for message in response.json()] == [first.id, second.id]
 
@@ -54,7 +54,7 @@ def test_create_message_assigns_current_user(
     """Message ownership should always come from the current session user."""
     user, _ = authenticate(client, test_app, db_session)
 
-    response = client.post("/messages", json={"text": "hello"}, headers={"X-CSRF-Token": "csrf-token"})
+    response = client.post("/api/messages", json={"text": "hello"}, headers={"X-CSRF-Token": "csrf-token"})
     message = db_session.scalar(select(Message).where(Message.text == "hello"))
 
     assert (response.status_code, response.json()["text"], message.user_id if message else None) == (
@@ -75,7 +75,7 @@ def test_create_message_rejects_invalid_text(
     """Message text outside schema boundaries should return 422."""
     authenticate(client, test_app, db_session)
 
-    response = client.post("/messages", json={"text": text}, headers={"X-CSRF-Token": "csrf-token"})
+    response = client.post("/api/messages", json={"text": text}, headers={"X-CSRF-Token": "csrf-token"})
 
     assert response.status_code == 422
 
@@ -89,7 +89,7 @@ def test_create_message_requires_csrf(
     """Authenticated message creation without CSRF proof should be forbidden."""
     authenticate(client, test_app, db_session)
 
-    response = client.post("/messages", json={"text": "hello"})
+    response = client.post("/api/messages", json={"text": "hello"})
 
     assert (response.status_code, response.json()) == (403, {"detail": "CSRF token required"})
 
@@ -105,7 +105,7 @@ def test_archive_message_marks_owned_message(
     message = create_message(db_session, user=user)
 
     response = client.patch(
-        f"/messages/{message.id}/archive",
+        f"/api/messages/{message.id}/archive",
         headers={"X-CSRF-Token": "csrf-token"},
     )
 
@@ -128,7 +128,7 @@ def test_archive_message_rejects_invalid_csrf(
     user, _ = authenticate(client, test_app, db_session)
     message = create_message(db_session, user=user)
 
-    response = client.patch(f"/messages/{message.id}/archive", headers=headers)
+    response = client.patch(f"/api/messages/{message.id}/archive", headers=headers)
 
     assert (response.status_code, response.json()) == (403, {"detail": detail})
 
@@ -145,7 +145,7 @@ def test_archive_message_hides_other_users_message(
     message = create_message(db_session, user=other_user)
 
     response = client.patch(
-        f"/messages/{message.id}/archive",
+        f"/api/messages/{message.id}/archive",
         headers={"X-CSRF-Token": "csrf-token"},
     )
 
@@ -155,6 +155,6 @@ def test_archive_message_hides_other_users_message(
 @pytest.mark.integration
 def test_list_messages_requires_authentication(client: TestClient) -> None:
     """Unauthenticated clients should not receive message data."""
-    response = client.get("/messages")
+    response = client.get("/api/messages")
 
     assert (response.status_code, response.json()) == (401, {"detail": "Authentication required"})

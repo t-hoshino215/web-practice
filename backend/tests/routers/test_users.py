@@ -21,7 +21,7 @@ from web_practice.services import verify_password
 @pytest.mark.integration
 def test_create_user_normalizes_username(client: TestClient) -> None:
     """Registration should persist a canonical lowercase username."""
-    response = client.post("/users", json={"username": "Alice", "password": "password123"})
+    response = client.post("/api/users", json={"username": "Alice", "password": "password123"})
 
     assert (response.status_code, response.json()["username"]) == (201, "alice")
 
@@ -29,7 +29,7 @@ def test_create_user_normalizes_username(client: TestClient) -> None:
 @pytest.mark.integration
 def test_create_user_response_hides_password(client: TestClient) -> None:
     """Registration responses must never expose passwords or their hashes."""
-    response = client.post("/users", json={"username": "alice", "password": "password123"})
+    response = client.post("/api/users", json={"username": "alice", "password": "password123"})
 
     assert set(response.json()) == {"id", "username", "role", "created_at"}
 
@@ -39,7 +39,7 @@ def test_create_user_hashes_password_before_persisting(client: TestClient, db_se
     """Registration should store a verifiable hash and never the plaintext password."""
     plaintext = "password123"
 
-    response = client.post("/users", json={"username": "alice", "password": plaintext})
+    response = client.post("/api/users", json={"username": "alice", "password": plaintext})
     user = db_session.scalar(select(User).where(User.username == "alice"))
 
     assert (
@@ -58,7 +58,7 @@ def test_create_user_rejects_duplicate_username(client: TestClient, db_session: 
     """Registration should reject an existing canonical username."""
     create_user(db_session, username="alice")
 
-    response = client.post("/users", json={"username": "ALICE", "password": "password123"})
+    response = client.post("/api/users", json={"username": "ALICE", "password": "password123"})
 
     assert (response.status_code, response.json()) == (409, {"detail": "Username already exists"})
 
@@ -87,7 +87,7 @@ def test_create_user_rolls_back_unique_race(monkeypatch: MonkeyPatch) -> None:
 )
 def test_create_user_rejects_invalid_payload(client: TestClient, payload: dict[str, str]) -> None:
     """Registration input outside schema boundaries should return 422."""
-    response = client.post("/users", json=payload)
+    response = client.post("/api/users", json=payload)
 
     assert response.status_code == 422
 
@@ -98,7 +98,7 @@ def test_get_me_returns_current_user(client: TestClient, test_app: FastAPI, db_s
     user = create_user(db_session, username="alice")
     test_app.dependency_overrides[get_current_user] = lambda: user
 
-    response = client.get("/users/me")
+    response = client.get("/api/users/me")
 
     assert (response.status_code, response.json()["id"]) == (200, user.id)
 
@@ -106,6 +106,6 @@ def test_get_me_returns_current_user(client: TestClient, test_app: FastAPI, db_s
 @pytest.mark.integration
 def test_get_me_requires_authentication(client: TestClient) -> None:
     """Requests without a session cookie should not expose a profile."""
-    response = client.get("/users/me")
+    response = client.get("/api/users/me")
 
     assert (response.status_code, response.json()) == (401, {"detail": "Authentication required"})
