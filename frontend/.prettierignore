@@ -1,0 +1,13 @@
+# 依存とビルド成果物
+node_modules/
+dist/
+coverage/
+
+# Markdown はリポジトリ全体で markdownlint-cli2 が管理する
+*.md
+
+# CLI生成物（手で整形しない）
+pnpm-lock.yaml
+
+# 他プロジェクトから持ち込んだ設定の置き場
+.tmp/

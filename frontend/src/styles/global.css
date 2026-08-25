@@ -16,7 +16,7 @@
 
 body {
   margin: 0;
-  font-family: system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-family: system-ui, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;
@@ -128,7 +128,7 @@ body {
   background: #fef2f2;
 }
 
-.notice[data-kind="success"] {
+.notice[data-kind='success'] {
   border-color: var(--color-success);
   color: var(--color-success);
   background: #f0fdf4;
