@@ -1084,9 +1084,9 @@ OCI VM上で次を実行する。
 git pull
 
 # /api への移行が入っているのでbackendを再ビルドする
-docker compose build backend
+docker compose --env-file ./backend/.env build backend
 
-docker compose up -d
+docker compose --env-file ./backend/.env up -d backend
 ```
 
 `frontend/` はバインドマウントなので、静的ファイルの更新だけならCaddyの再起動も再ビルドも不要（ブラウザのキャッシュのみ注意）。
@@ -1240,3 +1240,22 @@ curl -i "$BASE_URL/"            # 静的ファイルが返る
 | CORS | 不要 | 不要（開発サーバーは Vite の proxy 設定で同一オリジンにする） |
 
 移行時の主な作業は、`frontend/` をViteプロジェクト化し、`compose.yaml` のマウント先を `./frontend/dist` に変えることの2点になる。
+
+---
+
+## 導入記録
+
+この手順書に沿った導入記録。
+
+| # | 手順 | ステータス | コミット |
+| --- | --- | --- | --- |
+| 9-1 | APIに `/api` プレフィックスを付ける | 完了 | ff707b28a47ba607763d08f526aca325cba496ec |
+| 9-1 (修正) | `backend/tests/test_config.py` のパス追従失敗の問題の修正 | 完了 | de3de63023f230b4e3b3e2709694fa6b9064b9fa |
+| 9-2 | フロントエンドの雛形を作る | 完了 | 237ed8d4c7fd734314503445fae7d2aee544e8e2 |
+| 9-3 | Caddyから静的ファイルを配信する | 完了 | c6bb2f4f1d993fba5d787b85939e6a5c2085b27f |
+| 9-4 | CSSでスタイルを整える | 完了 | 2e9e765c1c36c2318fd585cfaad65145dc134974 |
+| 9-5 | APIクライアントを実装する | 完了 | 33e62daf28cb72b5531520179269d42b44fa2397 |
+| 9-6 | 画面描画を実装する | 完了 | 0b96f41c8aafb4b294aee3fa47559bab25b7803c |
+| 9-7 | 画面の初期化とイベント配線を実装する | 完了 | 001677f8c5829071ae11344c04887f0a86ae7b39 |
+| 9-8 | 公開する | 完了 | - |
+| 9-9 | 動作確認 | 完了 | - |
