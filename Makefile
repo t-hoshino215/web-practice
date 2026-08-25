@@ -50,7 +50,7 @@ chowns:
 # Run the Docker Compose setup and start the containers
 up-dev:
 	$(MAKE) setup
-	docker compose --profile dev up -d --build dev
+	docker compose --env-file .env --env-file ./backend/.env --profile dev up -d --build dev
 	$(MAKE) chowns
 
 # Stop and remove the containers
@@ -59,7 +59,7 @@ down-dev:
 
 # Run a command in the dev container
 exec-dev:
-	docker compose exec dev zsh
+	docker compose --env-file .env --env-file ./backend/.env exec dev zsh
 
 up:
 	docker compose --env-file ./backend/.env up -d --build
