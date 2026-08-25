@@ -6,9 +6,9 @@ Webサーバーの構築と公開を段階的に練習している。
 このサーバーアプリケーションは、FastAPIを使ったシンプルなWeb APIであり、ユーザー認証やメッセージのCRUD操作を提供する。
 Webアプリケーション構築のテンプレートとしても利用できるように設計されている。
 
-## Learning steps
+## Complete learning steps
 
-想定している学習ステップは以下の通り。
+現状、完了している学習ステップは以下の通り。
 
 1. FastAPIローカル実行: FastAPI・Uvicornを使い、`/`や`/health`へローカルからアクセスする
 2. Docker化: Dockerfile作成、イメージのビルド、コンテナ起動
@@ -19,6 +19,13 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 7. PostgreSQL: PostgreSQLコンテナ追加、FastAPIから接続、CRUD、named volumeで永続化
 8. DB Migration: Alembic導入、既存DBのstamp、Migration生成、upgrade／downgrade
 9. 認証: ユーザーテーブル、登録API、パスワードハッシュ、ログイン、Session／Cookie、保護API
+
+## Planned learning steps
+
+1. フロントエンド-1: HTML/CSS/JavaScriptの静的ファイルを作成し、FastAPIと連携する
+2. フロントエンド-2: TypeScript + React + Vite などのフロントエンドフレームワークでフロントエンドを構築し、FastAPIと連携する
+3. CI/CD: GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化
+4. 運用基盤: PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知
 
 ## Tech Stack
 
