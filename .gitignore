@@ -27,6 +27,7 @@ htmlcov/
 # Local data
 data/
 !data/.gitkeep
+.tmp/
 
 # IDE
 .idea/
