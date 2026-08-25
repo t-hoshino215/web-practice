@@ -14,7 +14,7 @@ CHOWN_PATHS := \
 	/home/$(USER_NAME)/.local \
 	/home/$(USER_NAME)/.cache
 
-.PHONY: setup setup-network setup-volumes chowns up-dev down-dev exec-dev
+.PHONY: setup setup-network setup-volumes chowns up-dev down-dev exec-dev up
 
 # Create the Docker network + volumes and the mounted directory
 setup-network:
@@ -60,3 +60,6 @@ down-dev:
 # Run a command in the dev container
 exec-dev:
 	docker compose exec dev zsh
+
+up:
+	docker compose --env-file ./backend/.env up -d --build

@@ -37,20 +37,20 @@ services:
       # 全コンテナで共有のUVキャッシュ
       - type: volume
         source: uv-cache
-        target: /home/${USER_NAME}/.cache/uv
+        target: /home/${USER_NAME:-dworker}/.cache/uv
       # 全コンテナで共有のclaudeの設定
       - type: volume
         source: claude-config
-        target: /home/${USER_NAME}/.claude
+        target: /home/${USER_NAME:-dworker}/.claude
       # ホストの設定ファイルをコンテナにバインドマウント
-      - ${SHARED_DATA_DIR}:${CONTAINER_SHARED_DATA}:ro
-      - ${HOME}/.zshrc:/home/${USER_NAME}/.zshrc:ro
-      - ${HOME}/.oh-my-zsh:/home/${USER_NAME}/.oh-my-zsh:ro
-      - ${HOME}/.p10k.zsh:/home/${USER_NAME}/.p10k.zsh:ro
-      - ${HOME}/.config/zsh-abbr/user-abbreviations:/home/${USER_NAME}/.config/zsh-abbr/user-abbreviations:ro
-      - ${HOME}/.gitconfig:/home/${USER_NAME}/.gitconfig:ro
-      - ${HOME}/.ssh:/home/${USER_NAME}/.ssh:ro
-      - ${HOME}/.codex:/home/${USER_NAME}/.codex
+      - ${SHARED_DATA_DIR:-${HOME}/dev/shared-data/}:${CONTAINER_SHARED_DATA:-/data/shared}:ro
+      - ${HOME}/.zshrc:/home/${USER_NAME:-dworker}/.zshrc:ro
+      - ${HOME}/.oh-my-zsh:/home/${USER_NAME:-dworker}/.oh-my-zsh:ro
+      - ${HOME}/.p10k.zsh:/home/${USER_NAME:-dworker}/.p10k.zsh:ro
+      - ${HOME}/.config/zsh-abbr/user-abbreviations:/home/${USER_NAME:-dworker}/.config/zsh-abbr/user-abbreviations:ro
+      - ${HOME}/.gitconfig:/home/${USER_NAME:-dworker}/.gitconfig:ro
+      - ${HOME}/.ssh:/home/${USER_NAME:-dworker}/.ssh:ro
+      - ${HOME}/.codex:/home/${USER_NAME:-dworker}/.codex
     networks:
       - dev-network
     ports:
