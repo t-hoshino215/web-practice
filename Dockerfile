@@ -80,7 +80,11 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
-    && npm install -g markdownlint-cli2
+    && npm install -g markdownlint-cli2 \
+    && corepack enable pnpm
+
+# Corepackが初回実行時に対話プロンプトを出さないようにする（非TTYの環境で固まるのを防ぐ）
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 # Switch the login shell to zsh and create the dev config + uv cache dirs
 RUN chsh -s /bin/zsh "${USER_NAME}" \
