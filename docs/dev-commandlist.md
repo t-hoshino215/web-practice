@@ -4,13 +4,13 @@
 
 ```bash
 # ソースコード変更をイメージに反映するため再ビルド
-docker compose build app
+docker compose build backend
 
 # Migrationを生成する
 docker compose run --rm \
   --user "$(id -u):$(id -g)" \
   --volume ./backend/migrations/versions:/app/migrations/versions \
-  app \
+  backend \
   alembic revision --autogenerate -m "<MIGRATION_MESSAGE>"
 
 # Migrationファイルが生成されたことと内容を確認する
@@ -18,19 +18,19 @@ ls -lah backend/migrations/versions/<MIGRATION_FILE_NAME>
 cat backend/migrations/versions/<MIGRATION_FILE_NAME>
 
 # Migrationをイメージに反映するため再ビルド
-docker compose build app
+docker compose --env-file ./backend/.env build backend
 
 # 現在のMigration IDを確認する ((head)ではない)
-docker compose run --rm app alembic current
+docker compose --env-file ./backend/.env run --rm backend alembic current
 
 # 新しいMigration IDを確認する
-docker compose run --rm app alembic heads
+docker compose --env-file ./backend/.env run --rm backend alembic heads
 
 # 新しいMigrationをDBに反映させる
-docker compose run --rm app alembic upgrade head
+docker compose --env-file ./backend/.env run --rm backend alembic upgrade head
 
 # 現在のMigration IDを確認する ((head)=headsのIDになっている)
-docker compose run --rm app alembic current
+docker compose --env-file ./backend/.env run --rm backend alembic current
 
 # DBの内容を確認する
 docker compose exec db sh -lc \
@@ -38,5 +38,5 @@ docker compose exec db sh -lc \
   "<SQL_QUERY>;"'
 
 # コンテナを再作成する
-docker compose up -d app
+docker compose --env-file ./backend/.env up -d backend
 ```
