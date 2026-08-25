@@ -8,41 +8,45 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 
 ## Complete learning steps
 
-現状、完了している学習ステップは以下の通り。
+想定している学習ステップは以下の通り。
 
 1. FastAPIローカル実行: FastAPI・Uvicornを使い、`/`や`/health`へローカルからアクセスする
 2. Docker化: Dockerfile作成、イメージのビルド、コンテナ起動
 3. Caddy + Compose: CaddyからFastAPIへ転送。FastAPIの8000番は外部非公開
-4. GitHub Actions: CI/CDの自動化。テスト・Lint・Build・Deployを自動化する
-5. OCIへ公開: OCI Ubuntu VM、VCN、Security List、Docker Composeによる公開
-6. ドメイン・HTTPS: Cloudflareでドメイン取得、DNS設定、443番開放、Caddyの自動HTTPS
-7. PostgreSQL: PostgreSQLコンテナ追加、FastAPIから接続、CRUD、named volumeで永続化
-8. DB Migration: Alembic導入、既存DBのstamp、Migration生成、upgrade／downgrade
-9. 認証: ユーザーテーブル、登録API、パスワードハッシュ、ログイン、Session／Cookie、保護API
-
-## Planned learning steps
-
-1. フロントエンド-1: HTML/CSS/JavaScriptの静的ファイルを作成し、FastAPIと連携する
-2. フロントエンド-2: TypeScript + React + Vite などのフロントエンドフレームワークでフロントエンドを構築し、FastAPIと連携する
-3. CI/CD: GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化
-4. 運用基盤: PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知
+4. OCIへ公開: OCI Ubuntu VM、VCN、Security List、Docker Composeによる公開
+5. ドメイン・HTTPS: Cloudflareでドメイン取得、DNS設定、443番開放、Caddyの自動HTTPS
+6. PostgreSQL: PostgreSQLコンテナ追加、FastAPIから接続、CRUD、named volumeで永続化
+7. DB Migration: Alembic導入、既存DBのstamp、Migration生成、upgrade／downgrade
+8. 認証: ユーザーテーブル、登録API、パスワードハッシュ、ログイン、Session／Cookie、保護API
+9. フロントエンド-1: HTML/CSS/JavaScriptの静的ファイルを作成し、FastAPIと連携する
+10. フロントエンド-2: TypeScript + React + Vite などのフロントエンドフレームワークでフロントエンドを構築し、FastAPIと連携する
+11. CI/CD: GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化
+12. 運用基盤: PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知
 
 ## Tech Stack
 
-- Python 3.14
-- パッケージマネージャー: uv
-- テスト pytest
-- リンター/フォーマッター: ruff
-- 型チェック: mypy
+- バックエンド: FastAPI + Uvicorn
+  - Python 3.14
+  - パッケージマネージャー: uv
+  - テスト pytest
+  - リンター/フォーマッター: ruff
+  - 型チェック: mypy
+- フロントエンド: TypeScript + React + Vite
+  - パッケージマネージャー: pnpm
+  - テスト: vitest
+  - リンター/フォーマッター: eslint + prettier
+  - 型チェック: TypeScript (tsc)
 
 ## Project Structure
 
-- ソースコード: `app/web_practice/`
-- テスト: `app/tests/`（app/web_practice/ のディレクトリ構造をミラー）
-- テストフィクスチャ: `app/tests/conftest.py` , `app/tests/factories/`
+- バックエンド: `backend/`
+  - ソースコード: `backend/src/web_practice/`
+  - テスト: `backend/tests/`（backend/src/web_practice/ のディレクトリ構造をミラー）
+  - テストフィクスチャ: `backend/tests/conftest.py` , `backend/tests/factories/`
+- フロントエンド: `frontend/`
 - ドキュメント: `docs/`
-- コーディングルール: `.claude/rules/code-style.md` , `.claude/rules/python-style.md`
-- テストルール: `.claude/rules/python-testing.md`
+- コーディングルール: `.claude/rules/code-style.md` , `.claude/rules/python-style.md`,  `.claude/rules/typescript-style.md`
+- テストルール: `.claude/rules/python-testing.md`, `.claude/rules/typescript-testing.md`
 
 ## Core Principles
 
