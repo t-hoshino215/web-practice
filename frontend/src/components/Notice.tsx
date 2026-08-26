@@ -16,7 +16,11 @@ export function Notice({ notice }: NoticeProps) {
 
   return (
     // エラーはalertとして即座に読み上げ、成功通知はstatusとして控えめに伝える
-    <p className="notice" data-kind={notice.kind} role={notice.kind === 'error' ? 'alert' : 'status'}>
+    <p
+      className="notice"
+      data-kind={notice.kind}
+      role={notice.kind === 'error' ? 'alert' : 'status'}
+    >
       {notice.message}
     </p>
   );
