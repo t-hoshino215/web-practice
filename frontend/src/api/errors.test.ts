@@ -21,7 +21,9 @@ describe('errors', () => {
 
     it('should return the network message when the error is unknown', () => {
       // Act & Assert
-      expect(toMessage(new TypeError('Failed to fetch'))).toContain('サーバーに接続できませんでした');
+      expect(toMessage(new TypeError('Failed to fetch'))).toContain(
+        'サーバーに接続できませんでした',
+      );
     });
   });
 

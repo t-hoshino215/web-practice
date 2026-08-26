@@ -173,3 +173,7 @@ body {
 .message-list__empty {
   color: var(--color-muted);
 }
+
+.loading {
+  color: var(--color-muted);
+}

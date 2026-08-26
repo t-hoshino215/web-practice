@@ -55,7 +55,11 @@ describe('client', () => {
       vi.mocked(fetch).mockResolvedValue(stubResponse(buildMessage()));
 
       // Act
-      await request('/messages', messageSchema, { method: 'POST', body: { text: 'hi' }, csrf: true });
+      await request('/messages', messageSchema, {
+        method: 'POST',
+        body: { text: 'hi' },
+        csrf: true,
+      });
 
       // Assert
       expect(fetch).toHaveBeenCalledWith(
@@ -68,9 +72,9 @@ describe('client', () => {
 
     it('should throw ApiError before sending when csrf is required but no token is stored', async () => {
       // Act & Assert
-      await expect(request('/messages', messageSchema, { method: 'POST', csrf: true })).rejects.toBeInstanceOf(
-        ApiError,
-      );
+      await expect(
+        request('/messages', messageSchema, { method: 'POST', csrf: true }),
+      ).rejects.toBeInstanceOf(ApiError);
     });
 
     it('should throw ApiError carrying the status when the API returns an error', async () => {
@@ -101,14 +105,17 @@ describe('client', () => {
     it.each([
       ['HTMLが返った場合', null],
       ['detailが無い場合', {}],
-    ])('should fall back to a generic message when the error body is unusable: %s', async (_label, body) => {
-      // Arrange
-      vi.mocked(fetch).mockResolvedValue(stubResponse(body, 500));
+    ])(
+      'should fall back to a generic message when the error body is unusable: %s',
+      async (_label, body) => {
+        // Arrange
+        vi.mocked(fetch).mockResolvedValue(stubResponse(body, 500));
 
-      // Act & Assert
-      await expect(request('/messages', messageSchema)).rejects.toThrowError(
-        'リクエストに失敗しました (HTTP 500)',
-      );
-    });
+        // Act & Assert
+        await expect(request('/messages', messageSchema)).rejects.toThrowError(
+          'リクエストに失敗しました (HTTP 500)',
+        );
+      },
+    );
   });
 });
