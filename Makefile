@@ -14,7 +14,7 @@ CHOWN_PATHS := \
 	/home/$(USER_NAME)/.local \
 	/home/$(USER_NAME)/.cache
 
-.PHONY: setup setup-network setup-volumes chowns up-dev down-dev exec-dev up
+.PHONY: setup setup-network setup-volumes chowns up-dev down-dev exec-dev up build-front
 
 # Create the Docker network + volumes and the mounted directory
 setup-network:
@@ -63,3 +63,8 @@ exec-dev:
 
 up:
 	docker compose --env-file ./backend/.env up -d --build
+
+# フロントエンドをビルドし直してCaddyへ反映する
+build-front:
+	docker compose --env-file ./backend/.env build caddy
+	docker compose --env-file ./backend/.env up -d caddy

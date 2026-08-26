@@ -94,13 +94,16 @@ services:
     restart: unless-stopped
 
   caddy:
-    image: caddy:2-alpine
+    # フロントエンドのビルド成果物を同梱したCaddyイメージを作る（frontend/Dockerfile）
+    build:
+      context: ./frontend
+      target: runtime
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      # Caddyfileはマウントのまま。再ビルドせずに reload できる
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./frontend:/srv/frontend:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
