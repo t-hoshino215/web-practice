@@ -157,4 +157,3 @@ STEP 10 の任意課題として、`sessionStorage` に依存している CSRF �
 - [ ] README、CLAUDE、STEP 10ガイド、healthcheckが実装後の構成と手順に一致する。
 - [ ] バックエンドとフロントエンドのテスト、coverage、lint、format check、型チェック、production buildが成功する。
 - [ ] コードレビューで CRITICAL・HIGH の未解決指摘がない。
-
