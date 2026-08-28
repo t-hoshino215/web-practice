@@ -57,6 +57,15 @@ def test_require_csrf_rejects_token_not_bound_to_session() -> None:
 
 
 @pytest.mark.unit
+def test_require_csrf_rejects_non_ascii_token() -> None:
+    """Untrusted non-ASCII tokens should be forbidden rather than raising a server error."""
+    with pytest.raises(HTTPException) as error:
+        require_csrf(make_auth_session(), "不正なトークン", "不正なトークン")
+
+    assert (error.value.status_code, error.value.detail) == (403, "Invalid CSRF token")
+
+
+@pytest.mark.unit
 def test_require_csrf_accepts_matching_header_cookie_and_session() -> None:
     """The header, cookie, and session digest should pass when all match."""
     require_csrf(make_auth_session(), "valid-csrf-token", "valid-csrf-token")

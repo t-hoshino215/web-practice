@@ -166,6 +166,32 @@ def test_refresh_csrf_rotates_session_digest_and_cookie(
 
 
 @pytest.mark.integration
+def test_refresh_csrf_invalidates_old_token_and_accepts_new_token(
+    client: TestClient,
+    test_app: FastAPI,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """State-changing routes should accept only the token produced by the latest rotation."""
+    configure_logout(client, test_app, db_session)
+    monkeypatch.setattr(auth_router, "generate_csrf_token", lambda: "rotated-csrf-token")
+    client.post("/api/auth/csrf")
+    client.cookies.delete("csrf_token")
+    client.cookies.set("csrf_token", "rotated-csrf-token")
+
+    old_token_response = client.post(
+        "/api/logout",
+        headers={"X-CSRF-Token": "raw-csrf-token"},
+    )
+    new_token_response = client.post(
+        "/api/logout",
+        headers={"X-CSRF-Token": "rotated-csrf-token"},
+    )
+
+    assert (old_token_response.status_code, new_token_response.status_code) == (403, 204)
+
+
+@pytest.mark.integration
 def test_login_rejects_unknown_user(client: TestClient) -> None:
     """Unknown usernames should receive the generic credential failure."""
     response = client.post("/api/login", json={"username": "missing", "password": "password123"})

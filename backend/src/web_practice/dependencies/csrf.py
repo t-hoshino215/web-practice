@@ -36,7 +36,10 @@ def require_csrf(
             detail="CSRF token required",
         )
 
-    if not secrets.compare_digest(csrf_token, csrf_cookie) or not is_valid_csrf_token(
+    header_token = csrf_token.encode("utf-8")
+    cookie_token = csrf_cookie.encode("utf-8")
+
+    if not secrets.compare_digest(header_token, cookie_token) or not is_valid_csrf_token(
         csrf_token, auth_session.csrf_token_hash
     ):
         raise HTTPException(
