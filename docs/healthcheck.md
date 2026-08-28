@@ -7,6 +7,7 @@
 ```bash
 BASE_URL="http://localhost"
 COOKIE_FILE="/tmp/web-practice-cookies.txt"
+SESSION_COOKIE_FILE="/tmp/web-practice-session-cookie.txt"
 ```
 
 ### [local] 基本ヘルスチェック
@@ -99,6 +100,7 @@ curl -i \
 ```text
 200 OK
 Set-Cookie: session=...
+Set-Cookie: csrf_token=...; Path=/; Max-Age=...; SameSite=lax
 
 {"user":..., "csrf_token":"..."}
 ```
@@ -109,12 +111,14 @@ Cookie確認：
 cat "$COOKIE_FILE"
 ```
 
-### CSRFトークンを記録
+### CSRF Cookieからトークンを記録
 
 ```bash
-CSRF_TOKEN=<ログインレスポンスのJSONに含まれるcsrf_tokenの値>
+CSRF_TOKEN=$(awk '$6 == "csrf_token" { print $7 }' "$COOKIE_FILE" | tail -n 1)
 echo "CSRF_TOKEN=$CSRF_TOKEN"
 ```
+
+JSONの `csrf_token` は既存クライアントとの互換性のため残っているが、ブラウザと同じ確認にするためCookieを正本として使います。
 
 ### [local] Cookieなし `/users/me`
 
@@ -180,16 +184,51 @@ curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: invalid-token" -X POST "$BASE_URL/ap
 {"detail":"Invalid CSRF token"}
 ```
 
-### [local] ログアウト (CSRFトークンあり)
+Cookieには正しい値が入っていても、ヘッダーが異なれば拒否されます。
+
+### [local] CSRF Cookieの再発行
+
+Session Cookieだけを残したCookie jarを作ります。
 
 ```bash
-curl -i -b "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/api/logout"
+awk '$6 != "csrf_token"' "$COOKIE_FILE" > "$SESSION_COOKIE_FILE"
+```
+
+CSRF Cookieなしでも、認証済みSessionがあれば再発行できます。
+
+```bash
+curl -i \
+  -b "$SESSION_COOKIE_FILE" \
+  -c "$COOKIE_FILE" \
+  -X POST \
+  "$BASE_URL/api/auth/csrf"
 ```
 
 期待値：
 
 ```text
 204 No Content
+Set-Cookie: csrf_token=...
+```
+
+新しいCookie値をヘッダー用変数へ反映します。
+
+```bash
+CSRF_TOKEN=$(awk '$6 == "csrf_token" { print $7 }' "$COOKIE_FILE" | tail -n 1)
+```
+
+### [local] ログアウト (CSRFトークンあり)
+
+```bash
+curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/api/logout"
+```
+
+期待値：
+
+```text
+204 No Content
+Set-Cookie: session=...; Max-Age=0; Path=/
+Set-Cookie: csrf_token=...; Max-Age=0; Path=/
 ```
 
 ログアウト後：
@@ -294,16 +333,16 @@ curl -i \
 
 ```text
 Secure
-HttpOnly
 SameSite=Lax
 ```
 
-が付いていることも確認するとGOODです。
+が両Cookieに付いていること、`HttpOnly` はSession Cookieだけに付いていることも確認するとGOODです。
 
 例えばレスポンスヘッダーに、
 
 ```text
 Set-Cookie: session=...; Path=/; Max-Age=...; Secure; HttpOnly; SameSite=lax
+Set-Cookie: csrf_token=...; Path=/; Max-Age=...; Secure; SameSite=lax
 ```
 
 のように出ていればOKです。
@@ -320,10 +359,16 @@ curl -i -b "$COOKIE_FILE" "$BASE_URL/api/users/me"
 200 OK
 ```
 
+CSRF Cookieの値をヘッダー用変数へ読み込みます。
+
+```bash
+CSRF_TOKEN=$(awk '$6 == "csrf_token" { print $7 }' "$COOKIE_FILE" | tail -n 1)
+```
+
 ### [public] ログアウト
 
 ```bash
-curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -X POST "$BASE_URL/api/logout"
+curl -i -b "$COOKIE_FILE" -c "$COOKIE_FILE" -H "X-CSRF-Token: $CSRF_TOKEN" -X POST "$BASE_URL/api/logout"
 ```
 
 期待値：
@@ -379,13 +424,16 @@ POST /api/users           → 201
 
 POST /api/login
   間違ったpassword    → 401
-  正しいpassword      → 200 + Cookie
+  正しいpassword      → 200 + Session/CSRF Cookie
 
 GET  /api/users/me
   Cookieなし          → 401
   Cookieあり          → 200
 
-POST /api/logout          → 204
+POST /api/auth/csrf       → 204 + 新しいCSRF Cookie
+POST /api/logout
+  CSRFヘッダーなし    → 403
+  3者一致             → 204 + 両Cookie削除
 
 GET  /api/users/me
   ログアウト後        → 401

@@ -18,14 +18,15 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 | Migration | Alembic |
 | DB | PostgreSQL 18 |
 | パスワードハッシュ | pwdlib（Argon2） |
+| フロントエンド | TypeScript / React / Vite / Zod |
 | リバースプロキシ | Caddy 2（自動HTTPS） |
 | 実行環境 | Docker / Docker Compose |
 | ホスティング | Oracle Cloud Infrastructure（Ubuntu VM） |
 | DNS・ドメイン | Cloudflare |
-| パッケージ管理 | uv |
-| テスト | pytest / pytest-cov |
-| Lint・Format | ruff |
-| 型チェック | mypy |
+| パッケージ管理 | uv / pnpm |
+| テスト | pytest / pytest-cov / Vitest |
+| Lint・Format | ruff / ESLint / Prettier |
+| 型チェック | mypy / TypeScript (tsc) |
 
 ## Architecture
 
@@ -34,10 +35,10 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 ```text
 Internet
   ↓ HTTPS (443)
-Caddy               … リバースプロキシ・自動HTTPS
-  ↓ HTTP (8000, 外部非公開)
-FastAPI (backend)   … Web API
-  ↓ psycopg
+Caddy               … 自動HTTPS・リクエストの振り分け
+  ├─ /*             → React（Viteのビルド成果物を静的配信）
+  └─ /api/*         → FastAPI (backend:8000、外部非公開)
+                         ↓ psycopg
 PostgreSQL (db)     … named volume で永続化
 ```
 
@@ -74,7 +75,23 @@ PostgreSQL (db)     … named volume で永続化
 │   ├── alembic.ini
 │   ├── pyproject.toml
 │   └── Dockerfile               # 本番用イメージ（builder / runtime）
-├── frontend/                    # 静的フロントエンド（STEP 9 で構築予定）
+├── frontend/                    # TypeScript + React + Vite
+│   ├── src/
+│   │   ├── api/                 # APIクライアント・Zodスキーマ
+│   │   ├── components/          # UIコンポーネント
+│   │   ├── hooks/               # 認証・メッセージの状態管理
+│   │   ├── styles/              # グローバルCSS
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── tests/                   # Vitest共通セットアップ・factory
+│   ├── index.html               # Viteのエントリポイント
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   ├── vite.config.ts
+│   ├── eslint.config.js
+│   └── Dockerfile               # Vite build + Caddyの多段ビルド
 ├── docs/
 │   ├── guides/                  # 段階的な導入手順書
 │   ├── dev-commandlist.md       # 開発用コマンド集
@@ -105,8 +122,10 @@ database.py  … Engine・Session・Base
 
 ## API
 
-認証はHttpOnly Session Cookieで行い、状態変更エンドポイントは `X-CSRF-Token` ヘッダーによるCSRF検証を要求する。
-CSRFトークンはログインのレスポンスボディで返却される。
+認証はHttpOnly Session Cookieで行う。ログイン時には、JavaScriptから読み取れる `csrf_token` Cookieも発行する。
+状態変更エンドポイントは、`X-CSRF-Token` ヘッダー、CSRF Cookie、認証セッションに保存したCSRFトークンのハッシュの3者を照合する Double Submit Cookie 方式で保護する。フロントエンドは状態変更の直前にCookieを読み、ヘッダーへ設定する。
+
+認証済みセッションでCSRF Cookieだけが欠落した場合は `POST /api/auth/csrf` で再発行できる。ログインレスポンスの `csrf_token` は互換性のため維持しているが、ReactフロントエンドではCookieを正本として扱う。
 
 | Method | Path | 認証 | CSRF | 説明 |
 | --- | --- | --- | --- | --- |
@@ -114,8 +133,9 @@ CSRFトークンはログインのレスポンスボディで返却される。
 | GET | `/health` | - | - | アプリのヘルスチェック |
 | GET | `/db-health` | - | - | DB接続のヘルスチェック |
 | POST | `/users` | - | - | ユーザー登録（重複は409） |
-| POST | `/login` | - | - | ログイン。Cookie発行＋CSRFトークン返却 |
-| POST | `/logout` | 必要 | 必要 | ログアウト。Session削除＋Cookie削除 |
+| POST | `/login` | - | - | ログイン。Session Cookie・CSRF Cookie発行＋CSRFトークン返却 |
+| POST | `/auth/csrf` | 必要 | - | 現在のセッションに紐づくCSRFトークンとCookieを再発行 |
+| POST | `/logout` | 必要 | 必要 | ログアウト。Session削除＋両Cookie削除 |
 | GET | `/users/me` | 必要 | - | ログイン中のユーザー情報 |
 | GET | `/messages` | 必要 | - | 自分のメッセージ一覧 |
 | POST | `/messages` | 必要 | 必要 | メッセージ作成 |
@@ -182,7 +202,22 @@ uv run ruff format .    # Format
 uv run mypy src         # 型チェック
 ```
 
-### 5. Migration
+### 5. フロントエンド開発
+
+フロントエンドの開発コマンドは `frontend/` ディレクトリで実行する。
+
+```bash
+pnpm install          # 依存関係の同期
+pnpm dev              # Vite開発サーバー
+pnpm test             # テスト
+pnpm test:coverage    # カバレッジ付きテスト
+pnpm typecheck        # 型チェック
+pnpm lint             # Lint
+pnpm format:check     # Formatチェック
+pnpm build            # 本番用ビルド
+```
+
+### 6. Migration
 
 生成・適用の詳細な手順は [docs/dev-commandlist.md](docs/dev-commandlist.md) を参照。
 
@@ -205,13 +240,13 @@ docker compose run --rm backend alembic upgrade head
 | 6. PostgreSQL | アプリで永続データを扱う | PostgreSQLコンテナ追加、FastAPIから接続、CRUD、named volumeで永続化 |
 | 7. DB Migration | DBスキーマの変更履歴を管理する | Alembic導入、既存DBのstamp、Migration生成、upgrade／downgrade |
 | 8. 認証 | ユーザーごとにアクセスを制御する | ユーザーテーブル、登録API、パスワードハッシュ、ログイン、Session／Cookie、CSRF、保護API |
+| [9. フロントエンド-1](docs/guides/step09-static-frontend.md) | ブラウザから使えるUIを用意する | HTML/CSS/JavaScriptの静的ファイルを作成し、Caddyから配信してAPIと連携する |
+| [10. フロントエンド-2](docs/guides/step10-react-vite.md) | モダンなフロントエンド開発を学ぶ | TypeScript + React + Vite でフロントエンドを再構築し、ビルド成果物を配信する |
 
 ### 予定
 
 | STEP | 目的 | 主な内容 | 手順書 |
 | --- | --- | --- | --- |
-| 9. フロントエンド-1 | ブラウザから使えるUIを用意する | HTML/CSS/JavaScriptの静的ファイルを作成し、Caddyから配信してAPIと連携する | [static-frontend.md](docs/guides/static-frontend.md) |
-| 10. フロントエンド-2 | モダンなフロントエンド開発を学ぶ | TypeScript + React + Vite でフロントエンドを再構築し、ビルド成果物を配信する | - |
 | 11. CI/CD | テストとデプロイを自動化する | GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化 | - |
 | 12. 運用基盤 | 障害やデータ消失に備えて継続運用する | PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知 | - |
 

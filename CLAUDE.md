@@ -44,6 +44,9 @@ Webアプリケーション構築のテンプレートとしても利用でき�
   - テスト: `backend/tests/`（backend/src/web_practice/ のディレクトリ構造をミラー）
   - テストフィクスチャ: `backend/tests/conftest.py` , `backend/tests/factories/`
 - フロントエンド: `frontend/`
+  - ソースコード: `frontend/src/`
+  - ユニットテスト: ソースと同階層にコロケーション（`*.test.ts` / `*.test.tsx`）
+  - テストセットアップ・factory: `frontend/tests/`
 - ドキュメント: `docs/`
 - コーディングルール: `.claude/rules/code-style.md` , `.claude/rules/python-style.md`,  `.claude/rules/typescript-style.md`
 - テストルール: `.claude/rules/python-testing.md`, `.claude/rules/typescript-testing.md`

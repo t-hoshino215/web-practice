@@ -295,7 +295,7 @@ pnpm add -D vitest @vitest/coverage-v8 jsdom @testing-library/react @testing-lib
 | --- | --- |
 | `outDir` / `rootDir` / `sourceMap` を削除 | `noEmit: true` なので `tsc` は何も出力しない。バンドルとsourcemapはViteが行う |
 | `moduleResolution: "bundler"` を追加 | 拡張子なしの `import './App'` をバンドラと同じ規則で解決する |
-| `lib` に `DOM` / `DOM.Iterable` を追加 | `document` / `fetch` / `sessionStorage` などブラウザAPIの型が必要 |
+| `lib` に `DOM` / `DOM.Iterable` を追加 | `document` / `fetch` などブラウザAPIの型が必要 |
 | `types: ["vite/client"]` を追加 | `import.meta.env` とCSSインポートの型が入る。未指定だと `@types/node` まで巻き込まれ、ブラウザ用コードにNodeの型が混ざる |
 | `jsx: "react-jsx"` を追加 | React 17以降の新しいJSX変換。`import React from 'react'` が不要になる |
 | `verbatimModuleSyntax: true` を追加 | `.tmp/eslint.config.js` の `consistent-type-imports` ルールをコンパイラ側でも強制する。型だけのインポートは `import type` と書く必要がある |
@@ -385,7 +385,7 @@ export default tseslint.config(
     ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/*.config.js', '**/.tmp/**'],
   },
   {
-    // ブラウザ実行前提のコード。document / fetch / sessionStorage を既知のグローバルとして扱う
+    // ブラウザ実行前提のコード。document / fetch などを既知のグローバルとして扱う
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,
@@ -521,8 +521,9 @@ afterEach(() => {
   // レンダリング結果を破棄する。残しておくとgetByRoleが前のテストの要素を拾う
   cleanup();
 
-  // CSRFトークンの保存先。テスト間で状態を持ち越さない
-  sessionStorage.clear();
+  // CSRF Cookieを期限切れにして、テスト間で状態を持ち越さない
+  document.cookie = 'csrf_token=; Max-Age=0; Path=/';
+  document.cookie = 'prefixed_csrf_token=; Max-Age=0; Path=/';
 });
 ```
 
@@ -585,7 +586,7 @@ pnpm test
 STEP 9 の `js/api.js` をTypeScript化する。押さえるべき仕様はSTEP 9 と同じ3点。
 
 1. Session Cookie は `HttpOnly` なのでJSから読めない。同一オリジンなら `fetch` が自動で送る
-2. CSRFトークンはログインのレスポンスボディで返る。状態変更リクエストでは `X-CSRF-Token` ヘッダーに載せる
+2. CSRFトークンはJavaScriptから読める `csrf_token` Cookieを正本とし、状態変更の直前に読み取って `X-CSRF-Token` ヘッダーに載せる
 3. エラーレスポンスの `detail` は2種類ある（`HTTPException` は文字列、Pydanticの検証エラー(422)は配列）
 
 TypeScript化にあたって1点追加する。**`fetch(...).json()` の戻り値は実行時まで形が分からない**ため、そこに型注釈を書いただけでは「宣言しただけ」で検証にはならない。境界で Zod により実際に検証し、型はスキーマから導出する。
@@ -645,7 +646,7 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildMessage } from '../../tests/factories/models';
-import { ApiError, request, storeCsrfToken } from './client';
+import { ApiError, getCsrfToken, request } from './client';
 import { messageSchema } from './schemas';
 
 /**
@@ -661,6 +662,20 @@ function stubResponse(body: unknown, status = 200): Response {
 }
 
 describe('client', () => {
+  describe('getCsrfToken', () => {
+    it('should read and decode the CSRF cookie', () => {
+      document.cookie = 'csrf_token=token%20value; Path=/';
+
+      expect(getCsrfToken()).toBe('token value');
+    });
+
+    it('should match the complete cookie name', () => {
+      document.cookie = 'prefixed_csrf_token=wrong-token; Path=/';
+
+      expect(getCsrfToken()).toBeNull();
+    });
+  });
+
   describe('request', () => {
     beforeEach(() => {
       vi.stubGlobal('fetch', vi.fn());
@@ -695,7 +710,7 @@ describe('client', () => {
 
     it('should send the X-CSRF-Token header when csrf is required', async () => {
       // Arrange
-      storeCsrfToken('test-token');
+      document.cookie = 'csrf_token=test-token; Path=/';
       vi.mocked(fetch).mockResolvedValue(stubResponse(buildMessage()));
 
       // Act
@@ -779,7 +794,7 @@ pnpm test
 import type { ZodType } from 'zod';
 
 const API_BASE = '/api';
-const CSRF_STORAGE_KEY = 'csrfToken';
+const CSRF_COOKIE_NAME = 'csrf_token';
 
 /**
  * APIがエラーを返したときに投げる例外。
@@ -795,20 +810,28 @@ export class ApiError extends Error {
   }
 }
 
-// --- CSRFトークンの保持 ---
-// 現在のバックエンドはログイン時にしかCSRFトークンを発行しないため、
-// レスポンスで受け取った値をsessionStorageに保持する。制約は「既知の制約」を参照。
+// --- CSRFトークンの取得 ---
+// Cookieはタブや同一ホストのポート間で共有されるため、状態変更の直前に現在値を読む。
 
 export function getCsrfToken(): string | null {
-  return sessionStorage.getItem(CSRF_STORAGE_KEY);
-}
+  const csrfCookie = document.cookie
+    .split(';')
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`));
 
-export function storeCsrfToken(token: string): void {
-  sessionStorage.setItem(CSRF_STORAGE_KEY, token);
-}
+  if (csrfCookie === undefined) {
+    return null;
+  }
 
-export function clearCsrfToken(): void {
-  sessionStorage.removeItem(CSRF_STORAGE_KEY);
+  const encodedToken = csrfCookie.slice(CSRF_COOKIE_NAME.length + 1);
+
+  try {
+    const token = decodeURIComponent(encodedToken);
+
+    return token.length > 0 ? token : null;
+  } catch {
+    return null;
+  }
 }
 
 // --- エラーレスポンスの整形 ---
@@ -1015,7 +1038,7 @@ describe('errors', () => {
 ```typescript
 /** 認証関連のAPI呼び出し。 */
 
-import { clearCsrfToken, request, requestVoid, storeCsrfToken } from './client';
+import { request, requestVoid } from './client';
 import { loginResponseSchema, userSchema, type User } from './schemas';
 
 export function registerUser(username: string, password: string): Promise<User> {
@@ -1028,19 +1051,19 @@ export async function login(username: string, password: string): Promise<User> {
     body: { username, password },
   });
 
-  storeCsrfToken(result.csrf_token);
-
   return result.user;
 }
 
 export async function logout(): Promise<void> {
   await requestVoid('/logout', { method: 'POST', csrf: true });
-
-  clearCsrfToken();
 }
 
 export function fetchCurrentUser(): Promise<User> {
   return request('/users/me', userSchema);
+}
+
+export function refreshCsrf(): Promise<void> {
+  return requestVoid('/auth/csrf', { method: 'POST' });
 }
 ```
 
@@ -1081,7 +1104,7 @@ APIの呼び出しと画面の状態を結ぶ層。ここを分けておくと�
 import { useCallback, useEffect, useState } from 'react';
 
 import * as authApi from '../api/auth';
-import { clearCsrfToken, getCsrfToken } from '../api/client';
+import { getCsrfToken } from '../api/client';
 import { isUnauthorized, toMessage } from '../api/errors';
 import type { User } from '../api/schemas';
 
@@ -1117,11 +1140,13 @@ export function useAuth(): UseAuthResult {
           return;
         }
 
-        // Cookieはあるが、このタブのsessionStorageにCSRFトークンが無い場合
-        // （別タブで開いた等）は、状態変更APIが必ず403になるためログイン画面へ戻す。
+        // 認証セッションが有効でもCSRF Cookieだけ欠落している場合は、
+        // 現在のセッションに紐づく値を再発行してから認証済み状態へ進む。
         if (getCsrfToken() === null) {
-          setStatus('anonymous');
-          setBootstrapNotice('操作を続けるにはログインし直してください。');
+          await authApi.refreshCsrf();
+        }
+
+        if (cancelled) {
           return;
         }
 
@@ -1132,7 +1157,6 @@ export function useAuth(): UseAuthResult {
           return;
         }
 
-        clearCsrfToken();
         setStatus('anonymous');
 
         // 未ログイン(401)は正常な状態なのでエラー表示しない
@@ -1170,7 +1194,6 @@ export function useAuth(): UseAuthResult {
   }, []);
 
   const expire = useCallback((): void => {
-    clearCsrfToken();
     setUser(null);
     setStatus('anonymous');
   }, []);
@@ -1796,8 +1819,7 @@ pnpm dev
 - ログアウト
 
 > **`http://localhost:5173` と `http://localhost` は別オリジン。**
-> Cookieはポートを区別しないので `session` は両方で送られるが、**`sessionStorage` はオリジン単位**なのでCSRFトークンは共有されない。
-> 開発サーバーでログインしたあと `http://localhost/` を開くと「操作を続けるにはログインし直してください」と出るのはこのため。壊れているわけではない。確認は片方のオリジンに統一して行う。
+> 一方、Cookieはポートを区別しないため、`session` と `csrf_token` は両方で共有される。Viteの `/api` proxy を経由すれば、どちらの画面でもログイン状態と状態変更を継続できる。
 
 ファイルを編集して保存し、ブラウザが自動更新されること（HMR）も確認しておく。
 
@@ -2012,15 +2034,15 @@ docker compose logs caddy | tail -20
 
 #### Networkタブ
 
-- `POST /api/login` のレスポンスヘッダーに `Set-Cookie: session=...; HttpOnly; SameSite=lax`（公開環境ではさらに `Secure`）
+- `POST /api/login` のレスポンスヘッダーに、`HttpOnly` の `session` とJavaScriptから読める `csrf_token` の2つの `Set-Cookie`（公開環境では両方に `Secure`）
 - `POST /api/messages` のリクエストヘッダーに `X-CSRF-Token`
 - `GET /` のあとに `/assets/index-<ハッシュ>.js` と `/assets/index-<ハッシュ>.css` が `200`
 - `/assets/*` のレスポンスヘッダーに `Cache-Control: public, max-age=31536000, immutable`
 
 #### Applicationタブ
 
-- Cookies に `session` があり `HttpOnly` にチェック
-- Session Storage に `csrfToken`
+- Cookies に `session` と `csrf_token` がある
+- `session` だけ `HttpOnly` にチェックがあり、両Cookieが `Path=/`・`SameSite=Lax` になっている
 
 #### Consoleタブ
 
@@ -2048,11 +2070,13 @@ pnpm test
 pnpm test:coverage
 ```
 
-バックエンド側に変更は入れていないが、念のため通しておく。
+CSRF契約を変更しているため、バックエンドの全テストと静的検査も通す。
 
 ```bash
 cd backend
 uv run pytest
+uv run ruff check .
+uv run mypy src tests
 ```
 
 ---
@@ -2103,49 +2127,69 @@ rm -rf frontend/.tmp
 
 ## 発展: CSRFトークンの再発行（任意）
 
-STEP 9 の「既知の制約」で先送りにした問題への対応。**このガイドの範囲外だが、STEP 10 と合わせて実施すると体験が改善する。**
+STEP 9 の「既知の制約」で先送りにした問題を、セッション束縛型の **Double Submit Cookie** で解消する。実装では、ヘッダーとCookieの一致だけでなく、現在の認証セッションに保存したハッシュも照合する。
 
-現状のバックエンドは**ログイン時にしかCSRFトークンを発行しない**ため、新しいタブで開いた場合や、開発サーバーと本番URLを行き来した場合に「Cookieはあるがトークンが無い」状態になる。
+```text
+X-CSRF-Token ─┐
+              ├─ 生トークンが一致 ─ ハッシュ化 ─ DBのセッション保存値と一致 → 許可
+csrf_token ───┘
+```
+
+ログインレスポンスの `csrf_token` フィールドは既存クライアントとの互換性のため残すが、ReactフロントエンドはCookieを正本として扱う。
 
 ### バックエンド側
 
-`backend/src/web_practice/routers/auth.py` に、現在のセッションのCSRFトークンを**新しく発行し直す**エンドポイントを追加する。DBにはハッシュしか保存していないため、元のトークンを取り出すことはできず、ローテーションする形になる。
+ログイン時に `session` と同じ有効期間・`Secure`・`SameSite=Lax`・`Path=/` を持つ `csrf_token` Cookieを発行する。Session Cookieは引き続き `HttpOnly`、CSRF CookieはJavaScriptで読むため非 `HttpOnly` にする。
+
+`POST /api/auth/csrf` は現在の認証セッションに対して新しいトークンを生成し、DBのハッシュとCookieを同時に更新して `204 No Content` を返す。このエンドポイントはCSRF Cookieを失った状態からの復旧口なので `require_csrf` は付けず、`SameSite=Lax` のSession Cookieを使う同一サイトのリクエストに限定する。
 
 ```python
-@router.post("/auth/csrf", response_model=CsrfTokenResponse)
+@router.post("/auth/csrf", status_code=status.HTTP_204_NO_CONTENT)
 def refresh_csrf(
     auth_session: CurrentAuthSession,
     db: DbSession,
-) -> CsrfTokenResponse:
-    """現在のセッションに対して新しいCSRFトークンを発行する。"""
+) -> Response:
+    """Rotate the CSRF token bound to the current authenticated session."""
     csrf_token = generate_csrf_token()
-
     auth_session.csrf_token_hash = hash_csrf_token(csrf_token)
     db.commit()
 
-    return CsrfTokenResponse(csrf_token=csrf_token)
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    set_csrf_cookie(response, csrf_token)
+    return response
 ```
 
 TDDの順序で、先に `backend/tests/routers/test_auth.py` へ次のケースを追加する。
 
 - 未ログインでは401を返す
-- ログイン済みなら200と新しいトークンを返す
+- ログイン済みなら204と新しいCSRF Cookieを返す
+- ログイン時にSession/CSRF Cookieの属性が正しい
 - 発行後、古いトークンでは状態変更APIが403になる
 - 発行後、新しいトークンでは状態変更APIが成功する
+- ログアウト時に両Cookieを削除する
+
+`backend/tests/dependencies/test_csrf.py` では、ヘッダー欠落、Cookie欠落、両者の不一致、DBハッシュとの不一致、3者一致を個別にテストする。
 
 ### フロントエンド側
 
-`useAuth` のセッション復元で、トークンが無ければ取得しにいく。
+`sessionStorage` の保存・削除処理を廃止し、状態変更の直前に `document.cookie` から完全一致するCookie名を探してデコードする。Cookieが無ければ送信前にエラーにする。
+
+`useAuth` のセッション復元では、先に `/api/users/me` でSession Cookieを確認し、認証済みかつCSRF Cookieだけが無い場合に限り再発行する。
 
 ```typescript
 if (getCsrfToken() === null) {
-  storeCsrfToken(await authApi.refreshCsrfToken());
+  await authApi.refreshCsrf();
 }
 ```
 
-### この方式のトレードオフ
+再発行後は共有Cookieが更新されるので、別タブも次の状態変更リクエスト直前に新しい値を読み取れる。復元中の再発行に失敗した場合は認証済み画面へ進まず、安全に匿名状態へ戻す。
 
-ローテーション方式では、**複数タブを同時に開くと後から開いたタブが先のタブのトークンを無効化する**。1タブ運用なら問題にならないが、気になる場合は Double Submit Cookie 方式（ログイン時にCSRFトークンを `HttpOnly` でないCookieにも入れ、JSがそれを読んでヘッダーへ載せる）のほうが素直。`sessionStorage` が不要になり、タブ間の共有も自然に解決する。
+### Double Submit Cookie のトレードオフ
+
+- Cookieはポートを区別しないため、同じホストの5173番と80番、複数タブで自然に共有できる。
+- CSRF CookieはJavaScriptから読めるため、XSSに対する秘密にはならない。Session Cookieの `HttpOnly` 維持と、Reactのエスケープなど別のXSS対策が必要。
+- 単純なDouble SubmitだけではCookieの差し替えに弱い。この実装はセッション保存ハッシュとの3者照合で、現在のSessionに束縛する。
+- 複数タブがCookie欠落を同時検知すると再発行が競合し、先に得た値が一時的に無効になる。Cookie欠落時だけ再発行し、送信直前に共有Cookieを読むことで競合時間を狭める。
 
 ---
 
@@ -2157,7 +2201,7 @@ if (getCsrfToken() === null) {
 | `pnpm install` が `ERR_PNPM_UNSUPPORTED_ENGINE` | Nodeが古い | Node 20以上にする |
 | `pnpm dev` で `/api/*` が `ECONNREFUSED` | Caddyが起動していない | `docker compose ps` で確認し `up -d caddy` |
 | `pnpm dev` で `/api/*` が404 | proxyのtargetが違う／Caddyのサイトブロックにマッチしていない | `vite.config.ts` の `target` と `changeOrigin: true` を確認 |
-| 5173でログインしたのに80でメッセージ追加が403 | `sessionStorage` はオリジン単位。ポートが違えば別オリジン | 確認するオリジンを統一する（10-9） |
+| Session Cookieはあるのに状態変更が403 | `csrf_token` Cookieが無い、またはヘッダー・Cookie・DBハッシュが不一致 | ApplicationタブでCookieを確認し、再読み込みして `/api/auth/csrf` の204と `Set-Cookie` を確認 |
 | `import.meta.env` が型エラー | `types: ["vite/client"]` が無い | `tsconfig.json` を確認（10-3） |
 | `Cannot find name 'document'` | `lib` に `DOM` が無い | `tsconfig.json` の `lib` を確認 |
 | `'X' is a type and must be imported using a type-only import` | `verbatimModuleSyntax: true` | `import type { X } from ...` に直す |
@@ -2176,19 +2220,9 @@ if (getCsrfToken() === null) {
 
 ## 既知の制約
 
-### CSRFトークンとオリジン／タブの関係
+### CSRFトークン再発行の競合
 
-STEP 9 から引き継いだ制約。バックエンドがログイン時にしかCSRFトークンを発行しないため、`sessionStorage` に持っている。
-
-```text
-同じオリジンで再読み込み(F5)
-  → Cookie ○  sessionStorage ○  → 正常に復元される
-
-別タブで同じURLを開く / 5173と80を行き来する
-  → Cookie ○  sessionStorage ✗  → ログイン済みだが状態変更ができない
-```
-
-`useAuth` の復元処理が後者を検出して「ログインし直してください」と表示する。**発生しても壊れないが、体験としては良くない。** 恒久対応は「発展」の節を参照。
+Session/CSRF Cookieはタブ間で共有されるため、別タブや5173番と80番を行き来しても認証状態を継続できる。ただし、複数タブがCSRF Cookie欠落を同時に検知すると再発行が競合し、最後に発行した値だけが有効になる。通常はCookie欠落時だけ再発行するため短時間だが、失敗した状態変更は再読み込みして最新Cookieを取得してからやり直す。
 
 ### ビルドが必要になった
 
@@ -2242,9 +2276,10 @@ STEP 9 から引き継いだ制約。バックエンドがログイン時にし�
 | 10-10 | ビルド成果物をCaddyから配信する | 完了 | 37366f0b7476d7301cda0308ade1be5109809079 |
 | 10-11 | 公開する | 未着手 | - |
 | 10-12 | 動作確認 | 未着手 | - |
-| 10-13 | ドキュメントを更新する | 未着手 | - |
+| 10-13 | ドキュメントを更新する | 完了 | - |
 
 追記:
 
 - 10-3の`tsconfig.json`で`noUncheckedIndexedAccess`を`false`にしているが、型安全性を高めるため`true`に変更した。
 - 10-3で、現状の最新のTypeScript7.0.3はコンパイラAPIを同梱せず、eslintが動しないため `frontend/package.json` で typescriptを6.0.3に固定している。TypeScript7.1で解消予定。 (コミット: 65ad19b0150ecc39f526388fe242905abc3a4fa2)
+- 発展課題のCSRF再発行を、セッション束縛型Double Submit Cookie方式で実装した。バックエンド: `be09788`、フロントエンド: `7212972`。
