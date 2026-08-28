@@ -17,6 +17,7 @@ permissions:
   contents: read
 
 jobs:
+# ----- Backend -----
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -50,3 +51,45 @@ jobs:
 
       - name: Test (pytest)
         run: uv run pytest --cov
+
+# ----- Frontend -----
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      # package.json の packageManager フィールドを読んで pnpm を用意する、リポジトリルート以外に package.json があるためパスを指定
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      # cache: pnpm はpnpmが先に入っていることが前提
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # package.json のスクリプトを使って各種チェックを実行 (※pnpm test はウォッチモードだと止まらないため1回実行であること)
+      - name: Lint (ESLint)
+        run: pnpm lint
+
+      - name: Format check (Prettier)
+        run: pnpm format:check
+
+      - name: Type check (tsc)
+        run: pnpm typecheck
+
+      - name: Test (Vitest)
+        run: pnpm test
