@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildMessage } from '../../tests/factories/models';
-import { ApiError, request, storeCsrfToken } from './client';
+import { ApiError, getCsrfToken, request } from './client';
 import { messageSchema } from './schemas';
 
 /**
@@ -17,6 +17,32 @@ function stubResponse(body: unknown, status = 200): Response {
 }
 
 describe('client', () => {
+  describe('getCsrfToken', () => {
+    it('should read and decode the CSRF cookie', () => {
+      // Arrange
+      document.cookie = 'csrf_token=token%20value; Path=/';
+
+      // Act & Assert
+      expect(getCsrfToken()).toBe('token value');
+    });
+
+    it('should match the complete cookie name', () => {
+      // Arrange
+      document.cookie = 'prefixed_csrf_token=wrong-token; Path=/';
+
+      // Act & Assert
+      expect(getCsrfToken()).toBeNull();
+    });
+
+    it('should return null when the cookie contains invalid percent encoding', () => {
+      // Arrange
+      document.cookie = 'csrf_token=%invalid; Path=/';
+
+      // Act & Assert
+      expect(getCsrfToken()).toBeNull();
+    });
+  });
+
   describe('request', () => {
     beforeEach(() => {
       vi.stubGlobal('fetch', vi.fn());
@@ -51,7 +77,7 @@ describe('client', () => {
 
     it('should send the X-CSRF-Token header when csrf is required', async () => {
       // Arrange
-      storeCsrfToken('test-token');
+      document.cookie = 'csrf_token=test-token; Path=/';
       vi.mocked(fetch).mockResolvedValue(stubResponse(buildMessage()));
 
       // Act

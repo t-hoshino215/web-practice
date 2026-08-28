@@ -12,7 +12,7 @@ export default tseslint.config(
     ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/*.config.js', '**/.tmp/**'],
   },
   {
-    // ブラウザ実行前提のコード。document / fetch / sessionStorage を既知のグローバルとして扱う
+    // ブラウザ実行前提のコード。document / fetch などを既知のグローバルとして扱う
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,

@@ -13,6 +13,7 @@ afterEach(() => {
   // レンダリング結果を破棄する。残しておくとgetByRoleが前のテストの要素を拾う
   cleanup();
 
-  // CSRFトークンの保存先。テスト間で状態を持ち越さない
-  sessionStorage.clear();
+  // CSRF Cookieを期限切れにして、テスト間で状態を持ち越さない
+  document.cookie = 'csrf_token=; Max-Age=0; Path=/';
+  document.cookie = 'prefixed_csrf_token=; Max-Age=0; Path=/';
 });

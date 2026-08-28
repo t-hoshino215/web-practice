@@ -10,7 +10,7 @@
 import type { ZodType } from 'zod';
 
 const API_BASE = '/api';
-const CSRF_STORAGE_KEY = 'csrfToken';
+const CSRF_COOKIE_NAME = 'csrf_token';
 
 /**
  * APIがエラーを返したときに投げる例外。
@@ -26,20 +26,28 @@ export class ApiError extends Error {
   }
 }
 
-// --- CSRFトークンの保持 ---
-// 現在のバックエンドはログイン時にしかCSRFトークンを発行しないため、
-// レスポンスで受け取った値をsessionStorageに保持する。制約は「既知の制約」を参照。
+// --- CSRFトークンの取得 ---
+// Cookieはタブや同一ホストのポート間で共有されるため、状態変更の直前に現在値を読む。
 
 export function getCsrfToken(): string | null {
-  return sessionStorage.getItem(CSRF_STORAGE_KEY);
-}
+  const csrfCookie = document.cookie
+    .split(';')
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`));
 
-export function storeCsrfToken(token: string): void {
-  sessionStorage.setItem(CSRF_STORAGE_KEY, token);
-}
+  if (csrfCookie === undefined) {
+    return null;
+  }
 
-export function clearCsrfToken(): void {
-  sessionStorage.removeItem(CSRF_STORAGE_KEY);
+  const encodedToken = csrfCookie.slice(CSRF_COOKIE_NAME.length + 1);
+
+  try {
+    const token = decodeURIComponent(encodedToken);
+
+    return token.length > 0 ? token : null;
+  } catch {
+    return null;
+  }
 }
 
 // --- エラーレスポンスの整形 ---

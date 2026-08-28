@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import * as authApi from '../api/auth';
-import { clearCsrfToken, getCsrfToken } from '../api/client';
+import { getCsrfToken } from '../api/client';
 import { isUnauthorized, toMessage } from '../api/errors';
 import type { User } from '../api/schemas';
 
@@ -41,11 +41,13 @@ export function useAuth(): UseAuthResult {
           return;
         }
 
-        // Cookieはあるが、このタブのsessionStorageにCSRFトークンが無い場合
-        // （別タブで開いた等）は、状態変更APIが必ず403になるためログイン画面へ戻す。
+        // 認証セッションが有効でもCSRF Cookieだけ欠落している場合は、
+        // 現在のセッションに紐づく値を再発行してから認証済み状態へ進む。
         if (getCsrfToken() === null) {
-          setStatus('anonymous');
-          setBootstrapNotice('操作を続けるにはログインし直してください。');
+          await authApi.refreshCsrf();
+        }
+
+        if (cancelled) {
           return;
         }
 
@@ -56,7 +58,6 @@ export function useAuth(): UseAuthResult {
           return;
         }
 
-        clearCsrfToken();
         setStatus('anonymous');
 
         // 未ログイン(401)は正常な状態なのでエラー表示しない
@@ -94,7 +95,6 @@ export function useAuth(): UseAuthResult {
   }, []);
 
   const expire = useCallback((): void => {
-    clearCsrfToken();
     setUser(null);
     setStatus('anonymous');
   }, []);
