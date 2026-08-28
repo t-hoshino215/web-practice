@@ -99,6 +99,7 @@ PostgreSQL (db)     … named volume で永続化
 │   ├── plans/                   # 実装計画
 │   └── logs/                    # 作業ログ
 ├── scripts/gen-compose-env.sh   # ホスト環境から .env を生成
+├── .github/                     # GitHub Actions ワークフローなど
 ├── .devcontainer/               # VS Code Dev Container 設定
 ├── compose.yaml                 # dev / backend / db / caddy
 ├── Caddyfile                    # リバースプロキシ設定
