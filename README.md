@@ -247,7 +247,7 @@ docker compose run --rm backend alembic upgrade head
 
 | STEP | 目的 | 主な内容 | 手順書 |
 | --- | --- | --- | --- |
-| 11. CI/CD | テストとデプロイを自動化する | GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化 | - |
+| 11. CI/CD | テストとデプロイを自動化する | GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化 | [step11](docs/guides/step11-cicd-github-actions.md) |
 | 12. 運用基盤 | 障害やデータ消失に備えて継続運用する | PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知 | - |
 
 ## Documentation
