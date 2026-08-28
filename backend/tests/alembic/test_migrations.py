@@ -51,9 +51,7 @@ def require_safe_postgresql_url() -> str:
     if url.get_backend_name() != "postgresql":
         pytest.fail("TEST_DATABASE_URL must use PostgreSQL")
     if not (database.startswith("test_") or database.endswith("_test")):
-        pytest.fail(
-            "TEST_DATABASE_URL database name must start with test_ or end with _test"
-        )
+        pytest.fail("TEST_DATABASE_URL database name must start with test_ or end with _test")
     if ambient_url is not None and make_url(ambient_url) == url:
         pytest.fail("TEST_DATABASE_URL must not equal the ambient DATABASE_URL")
 
@@ -74,10 +72,7 @@ def schema_objects(engine: Engine) -> set[str]:
 def test_revision_graph_has_one_linear_head() -> None:
     """Migration history should remain a single complete linear chain."""
     script = ScriptDirectory.from_config(Config(str(ALEMBIC_INI)))
-    revisions = [
-        (revision.revision, revision.down_revision)
-        for revision in script.walk_revisions()
-    ]
+    revisions = [(revision.revision, revision.down_revision) for revision in script.walk_revisions()]
 
     assert (script.get_heads(), revisions) == (["081ce138bdf1"], EXPECTED_CHAIN)
 
@@ -87,9 +82,7 @@ def test_revision_graph_has_one_linear_head() -> None:
     ("direction", "revision_range"),
     [("upgrade", "base:head"), ("downgrade", "head:base")],
 )
-def test_postgresql_migrations_generate_offline_sql(
-    direction: str, revision_range: str
-) -> None:
+def test_postgresql_migrations_generate_offline_sql(direction: str, revision_range: str) -> None:
     """Every migration direction should compile without connecting to a database."""
     result = run_alembic(
         "postgresql+psycopg://migration:test@localhost/test_migration",
@@ -161,12 +154,8 @@ def test_upgrade_and_downgrade_on_dedicated_postgresql() -> None:
         inspector = inspect(engine)
         tables = set(inspector.get_table_names())
         user_columns = {column["name"] for column in inspector.get_columns("users")}
-        auth_columns = {
-            column["name"] for column in inspector.get_columns("auth_sessions")
-        }
-        message_columns = {
-            column["name"] for column in inspector.get_columns("messages")
-        }
+        auth_columns = {column["name"] for column in inspector.get_columns("auth_sessions")}
+        message_columns = {column["name"] for column in inspector.get_columns("messages")}
         unique_indexes = {
             index["name"]
             for table in ("users", "auth_sessions")
@@ -178,10 +167,7 @@ def test_upgrade_and_downgrade_on_dedicated_postgresql() -> None:
             for table in ("auth_sessions", "messages")
             for foreign_key in inspector.get_foreign_keys(table)
         }
-        check_constraints = {
-            constraint["name"]
-            for constraint in inspector.get_check_constraints("users")
-        }
+        check_constraints = {constraint["name"] for constraint in inspector.get_check_constraints("users")}
         assert (
             tables,
             user_columns,
@@ -218,7 +204,5 @@ def test_upgrade_and_downgrade_on_dedicated_postgresql() -> None:
         finally:
             engine.dispose()
 
-    assert downgrade is not None and downgrade.returncode == 0, (
-        downgrade.stderr if downgrade else ""
-    )
+    assert downgrade is not None and downgrade.returncode == 0, downgrade.stderr if downgrade else ""
     assert remaining_objects == set()

@@ -12,6 +12,7 @@ from web_practice.routers import admin_router, auth_router, health_router, messa
 
 _API_PREFIX = "/api"
 
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """
