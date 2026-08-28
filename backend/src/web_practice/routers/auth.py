@@ -7,9 +7,14 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
 
-from web_practice.config import COOKIE_SECURE, SESSION_COOKIE_NAME, SESSION_LIFETIME
+from web_practice.config import (
+    COOKIE_SECURE,
+    CSRF_COOKIE_NAME,
+    SESSION_COOKIE_NAME,
+    SESSION_LIFETIME,
+)
 from web_practice.database import DbSession
-from web_practice.dependencies import require_csrf
+from web_practice.dependencies import CurrentAuthSession, require_csrf
 from web_practice.models import AuthSession, User
 from web_practice.schemas import LoginRequest, LoginResponse, UserResponse
 from web_practice.services import (
@@ -26,6 +31,20 @@ from web_practice.services import (
 router = APIRouter(
     tags=["authentication"],
 )
+
+
+def set_csrf_cookie(response: Response, csrf_token: str) -> None:
+    """Set the JavaScript-readable cookie used by Double Submit Cookie validation."""
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        max_age=int(SESSION_LIFETIME.total_seconds()),
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        path="/",
+    )
+
 
 # --- ログイン ---
 
@@ -83,12 +102,35 @@ def login(
         samesite="lax",
         path="/",
     )
+    set_csrf_cookie(response, csrf_token)
 
     # ユーザー情報とCSRFトークンを持つLoginResponseを返す
     return LoginResponse(
         user=UserResponse.model_validate(user),
         csrf_token=csrf_token,
     )
+
+
+# --- CSRFトークン再発行 ---
+
+
+@router.post(
+    "/auth/csrf",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def refresh_csrf(
+    auth_session: CurrentAuthSession,
+    db: DbSession,
+) -> Response:
+    """Rotate the CSRF token bound to the current authenticated session."""
+    csrf_token = generate_csrf_token()
+    auth_session.csrf_token_hash = hash_csrf_token(csrf_token)
+    db.commit()
+
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    set_csrf_cookie(response, csrf_token)
+
+    return response
 
 
 # --- ログアウト ---
@@ -119,6 +161,10 @@ def logout(
 
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
+        path="/",
+    )
+    response.delete_cookie(
+        key=CSRF_COOKIE_NAME,
         path="/",
     )
 

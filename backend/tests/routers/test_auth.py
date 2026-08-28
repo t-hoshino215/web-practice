@@ -14,7 +14,7 @@ from tests.factories import create_auth_session, create_user
 from web_practice.dependencies.auth import get_current_auth_session
 from web_practice.models import AuthSession
 from web_practice.routers import auth as auth_router
-from web_practice.services import hash_password, hash_session_token
+from web_practice.services import hash_csrf_token, hash_password, hash_session_token
 
 
 def login_successfully(
@@ -96,6 +96,26 @@ def test_login_sets_hardened_session_cookie(
 
 
 @pytest.mark.integration
+def test_login_sets_readable_csrf_cookie(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Login should expose the CSRF token in a non-HttpOnly cookie."""
+    response = login_successfully(client, db_session, monkeypatch)
+
+    csrf_cookie = next(value for value in response.headers.get_list("set-cookie") if value.startswith("csrf_token="))
+
+    assert (
+        all(
+            attribute in csrf_cookie
+            for attribute in ["csrf_token=raw-csrf-token", "Max-Age=604800", "Path=/", "SameSite=lax"]
+        )
+        and "HttpOnly" not in csrf_cookie
+    )
+
+
+@pytest.mark.integration
 def test_login_sets_secure_cookie_when_enabled(
     client: TestClient,
     db_session: Session,
@@ -106,7 +126,43 @@ def test_login_sets_secure_cookie_when_enabled(
 
     response = login_successfully(client, db_session, monkeypatch)
 
-    assert "Secure" in response.headers["set-cookie"]
+    assert all("Secure" in cookie for cookie in response.headers.get_list("set-cookie"))
+
+
+@pytest.mark.integration
+def test_refresh_csrf_requires_authentication(client: TestClient) -> None:
+    """An unauthenticated caller must not rotate a CSRF token."""
+    response = client.post("/api/auth/csrf")
+
+    assert (response.status_code, response.json()) == (
+        401,
+        {"detail": "Authentication required"},
+    )
+
+
+@pytest.mark.integration
+def test_refresh_csrf_rotates_session_digest_and_cookie(
+    client: TestClient,
+    test_app: FastAPI,
+    db_session: Session,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """An authenticated refresh should replace both CSRF representations."""
+    auth_session = configure_logout(client, test_app, db_session)
+    monkeypatch.setattr(auth_router, "generate_csrf_token", lambda: "rotated-csrf-token")
+
+    response = client.post("/api/auth/csrf")
+    csrf_cookie = next(value for value in response.headers.get_list("set-cookie") if value.startswith("csrf_token="))
+
+    assert (
+        response.status_code,
+        auth_session.csrf_token_hash,
+        "csrf_token=rotated-csrf-token" in csrf_cookie,
+    ) == (
+        204,
+        hash_csrf_token("rotated-csrf-token"),
+        True,
+    )
 
 
 @pytest.mark.integration
@@ -151,6 +207,7 @@ def configure_logout(
     test_app.dependency_overrides[get_current_auth_session] = lambda: auth_session
     if session_cookie is not None:
         client.cookies.set("session", session_cookie)
+    client.cookies.set("csrf_token", "raw-csrf-token")
     return auth_session
 
 
@@ -182,7 +239,12 @@ def test_logout_expires_cookie(
 
     response = client.post("/api/logout", headers={"X-CSRF-Token": "raw-csrf-token"})
 
-    assert "Max-Age=0" in response.headers["set-cookie"]
+    expired_cookies = response.headers.get_list("set-cookie")
+
+    assert all(
+        any(name in cookie and "Max-Age=0" in cookie for cookie in expired_cookies)
+        for name in ["session=", "csrf_token="]
+    )
 
 
 @pytest.mark.integration

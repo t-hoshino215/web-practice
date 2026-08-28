@@ -24,6 +24,7 @@ def authenticate(
     test_app.dependency_overrides[get_current_user] = lambda: user
     test_app.dependency_overrides[get_current_auth_session] = lambda: auth_session
     client.cookies.set("session", "test-session-token")
+    client.cookies.set("csrf_token", "csrf-token")
     return user, auth_session
 
 
@@ -90,6 +91,25 @@ def test_create_message_requires_csrf(
     authenticate(client, test_app, db_session)
 
     response = client.post("/api/messages", json={"text": "hello"})
+
+    assert (response.status_code, response.json()) == (403, {"detail": "CSRF token required"})
+
+
+@pytest.mark.integration
+def test_create_message_requires_csrf_cookie(
+    client: TestClient,
+    test_app: FastAPI,
+    db_session: Session,
+) -> None:
+    """The CSRF header alone must not authorize message creation."""
+    authenticate(client, test_app, db_session)
+    client.cookies.delete("csrf_token")
+
+    response = client.post(
+        "/api/messages",
+        json={"text": "hello"},
+        headers={"X-CSRF-Token": "csrf-token"},
+    )
 
     assert (response.status_code, response.json()) == (403, {"detail": "CSRF token required"})
 

@@ -24,21 +24,39 @@ def make_auth_session() -> AuthSession:
 def test_require_csrf_rejects_missing_header() -> None:
     """State-changing requests must supply an explicit CSRF header."""
     with pytest.raises(HTTPException) as error:
-        require_csrf(make_auth_session(), None)
+        require_csrf(make_auth_session(), None, "valid-csrf-token")
 
     assert (error.value.status_code, error.value.detail) == (403, "CSRF token required")
 
 
 @pytest.mark.unit
-def test_require_csrf_rejects_invalid_token() -> None:
-    """A mismatched CSRF token should be forbidden."""
+def test_require_csrf_rejects_missing_cookie() -> None:
+    """State-changing requests must supply the CSRF cookie."""
     with pytest.raises(HTTPException) as error:
-        require_csrf(make_auth_session(), "wrong-token")
+        require_csrf(make_auth_session(), "valid-csrf-token", None)
+
+    assert (error.value.status_code, error.value.detail) == (403, "CSRF token required")
+
+
+@pytest.mark.unit
+def test_require_csrf_rejects_header_cookie_mismatch() -> None:
+    """The submitted header and cookie must contain the same token."""
+    with pytest.raises(HTTPException) as error:
+        require_csrf(make_auth_session(), "header-token", "cookie-token")
 
     assert (error.value.status_code, error.value.detail) == (403, "Invalid CSRF token")
 
 
 @pytest.mark.unit
-def test_require_csrf_accepts_matching_token() -> None:
-    """The expected raw CSRF token should pass validation."""
-    require_csrf(make_auth_session(), "valid-csrf-token")
+def test_require_csrf_rejects_token_not_bound_to_session() -> None:
+    """A matching header and cookie must still match the session digest."""
+    with pytest.raises(HTTPException) as error:
+        require_csrf(make_auth_session(), "other-token", "other-token")
+
+    assert (error.value.status_code, error.value.detail) == (403, "Invalid CSRF token")
+
+
+@pytest.mark.unit
+def test_require_csrf_accepts_matching_header_cookie_and_session() -> None:
+    """The header, cookie, and session digest should pass when all match."""
+    require_csrf(make_auth_session(), "valid-csrf-token", "valid-csrf-token")

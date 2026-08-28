@@ -10,6 +10,7 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 
 # セッション/Cookieの設定
 SESSION_COOKIE_NAME = "session"
+CSRF_COOKIE_NAME = "csrf_token"
 SESSION_LIFETIME = timedelta(days=7)
 
 # CookieのSecure属性を有効にするかどうかを環境変数から取得する。(localhost環境ではfalse、本番(公開HTTPS)環境ではtrueにする想定)
