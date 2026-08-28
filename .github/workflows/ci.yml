@@ -28,7 +28,7 @@ jobs:
         working-directory: backend
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.0.1
@@ -62,17 +62,17 @@ jobs:
         working-directory: frontend
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       # package.json の packageManager フィールドを読んで pnpm を用意する、リポジトリルート以外に package.json があるためパスを指定
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.10
         with:
           package_json_file: frontend/package.json
 
       # cache: pnpm はpnpmが先に入っていることが前提
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
