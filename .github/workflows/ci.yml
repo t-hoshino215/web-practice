@@ -1,0 +1,52 @@
+name: CI
+
+# PR毎、およびmainへのpush毎に実行する
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# 同じブランチで新しいpushがあったら、実行中の古いCIをキャンセルする（実行時間の節約）
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# ワークフロー全体の既定権限を「読み取りのみ」に絞る
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # このジョブのすべての run: を backend/ で実行する
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.5"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint (ruff check)
+        run: uv run ruff check .
+
+      - name: Format check (ruff format)
+        run: uv run ruff format --check .
+
+      - name: Type check (mypy)
+        run: uv run mypy src
+
+      - name: Test (pytest)
+        run: uv run pytest --cov
