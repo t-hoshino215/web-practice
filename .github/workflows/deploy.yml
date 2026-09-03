@@ -87,7 +87,6 @@ jobs:
           fingerprint: ${{ secrets.SSH_FINGERPRINT }}
           # ここに列挙した環境変数だけがリモートへ引き渡される
           envs: DEPLOY_PATH,GHCR_USER,GHCR_TOKEN,IMAGE_OWNER,IMAGE_TAG
-          script_stop: true
           script: |
             set -euo pipefail
 
