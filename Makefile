@@ -14,7 +14,13 @@ CHOWN_PATHS := \
 	/home/$(USER_NAME)/.local \
 	/home/$(USER_NAME)/.cache
 
-.PHONY: setup setup-network setup-volumes chowns up-dev down-dev exec-dev up build-front
+GHCR_OWNER ?= t-hoshino215
+TAG ?= latest
+DEPLOY_IMAGES := \
+	BACKEND_IMAGE=ghcr.io/$(GHCR_OWNER)/web-practice-backend:$(TAG) \
+	FRONTEND_IMAGE=ghcr.io/$(GHCR_OWNER)/web-practice-frontend:$(TAG)
+
+.PHONY: setup setup-network setup-volumes chowns up-dev down-dev exec-dev up build-front deploy
 
 # Create the Docker network + volumes and the mounted directory
 setup-network:
@@ -68,3 +74,9 @@ up:
 build-front:
 	docker compose --env-file ./backend/.env build caddy
 	docker compose --env-file ./backend/.env up -d caddy
+
+# Deploy services using the specified GHCR images
+deploy:
+	$(DEPLOY_IMAGES) docker compose --env-file ./backend/.env pull backend caddy
+	$(DEPLOY_IMAGES) docker compose --env-file ./backend/.env up -d backend caddy
+	docker compose --env-file ./backend/.env ps
