@@ -63,3 +63,74 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # イメージのpushが終わってから実行する
+    needs: build-and-push
+    # Environmentを指定すると、承認・デプロイ履歴・環境別Secretが使えるようになる
+    environment:
+      name: production
+      url: https://taph-lab.com
+    permissions:
+      contents: read
+      packages: read       # VM側がGHCRからpullするためのトークンに必要
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+          # ここに列挙した環境変数だけがリモートへ引き渡される
+          envs: DEPLOY_PATH,GHCR_USER,GHCR_TOKEN,IMAGE_OWNER,IMAGE_TAG
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            cd "$DEPLOY_PATH"
+
+            # デプロイ対象のコミットへ揃える（compose.yaml と Caddyfile をイメージと一致させる）
+            git fetch --prune origin
+            git switch --detach "$IMAGE_TAG"
+
+            # GHCRのprivateパッケージをpullするためのログイン
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            export BACKEND_IMAGE="ghcr.io/$IMAGE_OWNER/web-practice-backend:$IMAGE_TAG"
+            export FRONTEND_IMAGE="ghcr.io/$IMAGE_OWNER/web-practice-frontend:$IMAGE_TAG"
+
+            # 1) 新しいイメージを取得する
+            docker compose --env-file ./backend/.env pull backend caddy
+
+            # 2) DB Migration を適用する（新しいイメージのalembicを使う）
+            docker compose --env-file ./backend/.env run --rm backend alembic upgrade head
+
+            # 3) コンテナを新しいイメージで作り直す
+            docker compose --env-file ./backend/.env up -d backend caddy
+
+            docker compose --env-file ./backend/.env ps
+
+            # 後始末
+            docker logout ghcr.io
+            docker image prune --force
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.sha }}
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 10); do
+            code=$(curl -fsS -o /dev/null -w '%{http_code}' https://taph-lab.com/api/health) && break || true
+            echo "retry $i ..."
+            sleep 5
+          done
+          echo "status: ${code:-none}"
+          test "${code:-}" = "200"

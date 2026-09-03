@@ -61,6 +61,9 @@ services:
       PORT: 8000
       TZ: ${TZ:-UTC}
   backend:
+    # 環境変数が無ければローカルビルド用の名前を使う
+    # CI/CDからは、ghrc.ioの完全なイメージ名（タグ=コミットSHA）を渡す
+    image: ${BACKEND_IMAGE:-web-practice-backend:local}
     build:
       context: ./backend
       target: runtime
@@ -95,6 +98,7 @@ services:
 
   caddy:
     # フロントエンドのビルド成果物を同梱したCaddyイメージを作る（frontend/Dockerfile）
+    image: ${FRONTEND_IMAGE:-web-practice-caddy:local}
     build:
       context: ./frontend
       target: runtime
