@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  # mainへのpush（＝PRのマージ）で動く
+  push:
+    branches:
+      - main
+  # 手動実行も可能にしておく（初回の動作確認やリトライに使う）
+  workflow_dispatch:
+
+# デプロイは同時に走らせない。実行中なら次の実行を待たせる（キャンセルはしない）
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# 全体のデフォルト権限: 読み取り権限のみ付与
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and push
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write        # GHCRへpushするために、このジョブだけに権限を付与
+    strategy:
+      # 同じ手順を複数の環境（backend, frontend）に対して実行する
+      matrix:
+        include:
+          - name: backend
+            context: ./backend
+            image: web-practice-backend
+          - name: frontend
+            context: ./frontend
+            image: web-practice-frontend
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # GitHubが自動的に発行する一時トークン
+
+      - name: Build and push (${{ matrix.name }})
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          target: runtime
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
