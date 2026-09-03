@@ -78,6 +78,46 @@ jobs:
       contents: read
       packages: read       # VM側がGHCRからpullするためのトークンに必要
     steps:
+
+# --- temporary SSH deployment step ---
+
+      - name: Diagnose SSH host key
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_FINGERPRINT: ${{ secrets.SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+
+          expected="$(printf '%s' "$SSH_FINGERPRINT" | tr -d '\r\n')"
+
+          if [[ ! "$expected" =~ ^SHA256:[A-Za-z0-9+/]{43}$ ]]; then
+            echo "::error::SSH_FINGERPRINTの形式が不正です"
+            exit 1
+          fi
+
+          keys="$(mktemp)"
+          ssh-keyscan -T 10 -p 22 \
+            -t ed25519,ecdsa,rsa \
+            "$SSH_HOST" 2>/dev/null > "$keys"
+
+          if [ ! -s "$keys" ]; then
+            echo "::error::SSHホスト鍵を取得できませんでした"
+            exit 1
+          fi
+
+          echo "Runnerから取得したホスト鍵:"
+          ssh-keygen -E sha256 -lf "$keys"
+
+          if ! ssh-keygen -E sha256 -lf "$keys" |
+            awk '{ print $2 }' |
+            grep -Fxq "$expected"; then
+            echo "::error::登録されたfingerprintとRunnerから見えるfingerprintが一致しません"
+            exit 1
+          fi
+
+          echo "fingerprintは一致しています"
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
         with:
