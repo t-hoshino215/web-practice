@@ -28,7 +28,7 @@ jobs:
         working-directory: backend
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.0.1
@@ -62,7 +62,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # package.json の packageManager フィールドを読んで pnpm を用意する、リポジトリルート以外に package.json があるためパスを指定
       - name: Set up pnpm
@@ -113,7 +113,7 @@ jobs:
             context: ./frontend
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
