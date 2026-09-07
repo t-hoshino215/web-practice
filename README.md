@@ -1,5 +1,8 @@
 # Web Practice
 
+[![CI](https://github.com/t-hoshino215/web-practice/actions/workflows/ci.yml/badge.svg)](https://github.com/t-hoshino215/web-practice/actions/workflows/ci.yml)
+[![Deploy](https://github.com/t-hoshino215/web-practice/actions/workflows/deploy.yml/badge.svg)](https://github.com/t-hoshino215/web-practice/actions/workflows/deploy.yml)
+
 Webサーバーの構築と公開を段階的に練習するためのレポジトリ。
 
 FastAPIによるWeb API（ユーザー認証・メッセージのCRUD）を題材に、ローカル実行 → Docker化 → リバースプロキシ → クラウド公開 → HTTPS → DB → Migration → 認証、と一段ずつ積み上げている。
@@ -23,6 +26,8 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 | 実行環境 | Docker / Docker Compose |
 | ホスティング | Oracle Cloud Infrastructure（Ubuntu VM） |
 | DNS・ドメイン | Cloudflare |
+| CI/CD | GitHub Actions |
+| レジストリ | GitHub Container Registry（GHCR） |
 | パッケージ管理 | uv / pnpm |
 | テスト | pytest / pytest-cov / Vitest |
 | Lint・Format | ruff / ESLint / Prettier |
@@ -99,7 +104,11 @@ PostgreSQL (db)     … named volume で永続化
 │   ├── plans/                   # 実装計画
 │   └── logs/                    # 作業ログ
 ├── scripts/gen-compose-env.sh   # ホスト環境から .env を生成
-├── .github/                     # GitHub Actions ワークフローなど
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml               # Lint・型チェック・テスト・イメージビルド検証
+│   │   └── deploy.yml           # GHCRへpush → OCI VMへデプロイ
+│   └── dependabot.yml           # 依存とActionの更新PR
 ├── .devcontainer/               # VS Code Dev Container 設定
 ├── compose.yaml                 # dev / backend / db / caddy
 ├── Caddyfile                    # リバースプロキシ設定
@@ -227,6 +236,30 @@ docker compose run --rm backend alembic current   # 現在のリビジョン
 docker compose run --rm backend alembic upgrade head
 ```
 
+### 7. デプロイ
+
+`main` への直接pushは行わない。変更はブランチ → Pull Request → CI通過 → マージの順に進める。
+
+**`main` へマージすると本番（OCI VM）へ自動でデプロイされる。** [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) が次を実行する。
+
+1. backend／frontend のイメージをビルドし、コミットSHAをタグにしてGHCRへpushする
+2. OCI VMへSSHし、対象コミットへ切り替え → `docker compose pull` → `alembic upgrade head` → `docker compose up -d`
+3. `https://taph-lab.com/api/health` のスモークテスト
+
+サーバー上ではイメージをビルドしない。ビルドはすべてGitHub Actions側で行う。
+
+CD が使えないときや切り戻したいときは、VM上で手動デプロイする。`TAG` にはGHCRに存在するコミットSHAを指定する。
+
+```bash
+# 手動デプロイ（VM上）
+make deploy TAG=<commit sha>
+
+# ロールバック（VM上）: 直前に動いていたコミットSHAを指定する
+make deploy TAG=<前のcommit sha>
+```
+
+DBのMigrationは自動では戻らない。詳細な手順は [docs/dev-commandlist.md](docs/dev-commandlist.md) を参照。
+
 ## STEP
 
 ### 完了
@@ -243,12 +276,12 @@ docker compose run --rm backend alembic upgrade head
 | 8. 認証 | ユーザーごとにアクセスを制御する | ユーザーテーブル、登録API、パスワードハッシュ、ログイン、Session／Cookie、CSRF、保護API |
 | [9. フロントエンド-1](docs/guides/step09-static-frontend.md) | ブラウザから使えるUIを用意する | HTML/CSS/JavaScriptの静的ファイルを作成し、Caddyから配信してAPIと連携する |
 | [10. フロントエンド-2](docs/guides/step10-react-vite.md) | モダンなフロントエンド開発を学ぶ | TypeScript + React + Vite でフロントエンドを再構築し、ビルド成果物を配信する |
+| [11. CI/CD](docs/guides/step11-cicd-github-actions.md) | テストとデプロイを自動化する | GitHub ActionsでLint・型チェック・テスト・イメージビルドを実行し、GHCRへpushしてOCI VMへ自動デプロイする |
 
 ### 予定
 
 | STEP | 目的 | 主な内容 | 手順書 |
 | --- | --- | --- | --- |
-| 11. CI/CD | テストとデプロイを自動化する | GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化 | [step11](docs/guides/step11-cicd-github-actions.md) |
 | 12. 運用基盤 | 障害やデータ消失に備えて継続運用する | PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知 | - |
 
 ## Documentation

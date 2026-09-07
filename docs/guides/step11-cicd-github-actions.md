@@ -1730,18 +1730,322 @@ on:
 
 | # | 手順 | ステータス | コミット |
 | --- | --- | --- | --- |
-| 11-1 | CI/CDとGitHub Actionsの基礎を押さえる | 未着手 | - |
-| 11-2 | 最初のワークフローを動かす | 未着手 | - |
-| 11-3 | バックエンドのCIジョブを作る | 未着手 | - |
-| 11-4 | フロントエンドのCIジョブを追加する | 未着手 | - |
-| 11-5 | Dockerイメージのビルドを検証する | 未着手 | - |
-| 11-6 | PRベースの開発に切り替えてCIを必須にする | 未着手 | - |
-| 11-7 | イメージをGHCRへpushする | 未着手 | - |
-| 11-8 | composeをイメージ参照に対応させる | 未着手 | - |
-| 11-9 | デプロイ用の鍵とSecretsを用意する | 未着手 | - |
-| 11-10 | デプロイジョブを作る | 未着手 | - |
-| 11-11 | デプロイを実行して確認する | 未着手 | - |
-| 11-12 | 仕上げ | 未着手 | - |
-| 11-13 | ドキュメントを更新する | 未着手 | - |
+| 11-1 | CI/CDとGitHub Actionsの基礎を押さえる | 完了 | - |
+| 11-2 | 最初のワークフローを動かす | 完了 | a42f023232e2c8f3ecf5cbb8b6278d9c5e1fac3a / 9f984fd253b8c91d64424ef0f6a0b4cf0c59b07b |
+| 11-3 | バックエンドのCIジョブを作る | 完了 | e604de7653ec5025b0b98140d679313d64e41c97 / fefb0be2e3a7d04f6f0b7fddce8eeda5006aecd7 |
+| 11-4 | フロントエンドのCIジョブを追加する | 完了 | 01f85887e28479ad27d8135fcfd69f5a46f0f9ee / 53dbb2dc08b78312d830734effcb7493904405b4 |
+| 11-5 | Dockerイメージのビルドを検証する | 完了 | e38431d6a39bf99ce7f6f84fa486bd3a91a76411 |
+| 11-6 | PRベースの開発に切り替えてCIを必須にする | 完了 | 879d891207c29249663e695e3bbe219634871307 |
+| 11-7 | イメージをGHCRへpushする | 完了 | 45aa358d0e63fbfbc45d72b0321d3fa7f01edd3d |
+| 11-8 | composeをイメージ参照に対応させる | 完了 | f1b341e349c7ece108a58fc1e233bf6a0dbe2eaa |
+| 11-9 | デプロイ用の鍵とSecretsを用意する | 完了 | - |
+| 11-10 | デプロイジョブを作る | 完了 | f1b341e349c7ece108a58fc1e233bf6a0dbe2eaa / 7fdfe49c82573feef904f0382d41e6b968adbabe |
+| 11-11 | デプロイを実行して確認する | 完了 | cf16c0d059f50bedbc6ec21a68b76a3afb046048 / aff59251b7098aa5bfbbf7d02f9d8b2d9a81bbba |
+| 11-12 | 仕上げ | 完了 (一部見送り) | - |
+| 11-13 | ドキュメントを更新する | 完了 | - |
 
 追記:
+
+- 11-2〜11-5 は `main` への直接pushで進め、11-6 以降はPR運用（PR #1〜#6）に切り替えた。
+- 11-6のブランチ保護ルール、11-9のSSH鍵・Secrets・Environment、11-12の権限設定は、いずれもGitHub／OCI側のGUI設定のためコミットは残らない。
+- 11-10で `appleboy/ssh-action@v1` の `script_stop: true` が廃止済みオプションだったため削除した（`7fdfe49`）。
+- 11-11でSSHのホスト鍵検証に失敗したため、`ssh-keyscan` でRunnerから見えるfingerprintを表示する診断ステップを一時的に追加し、原因の特定後に削除した（`cf16c0d` → `aff5925`）。
+- 11-12の「Markdownのlintを追加する（任意）」は**見送った**。理由: `markdownlint-cli2` を `**/*.md` に適用すると11ファイル・48件の違反（`docs/plans/` のMD029、`docs/logs/` のMD013、`.claude/` 配下）が出るため、先に既存ドキュメントの整理が必要。整理後に `docs` ジョブを追加する。
+- 11-12の「サードパーティActionをコミットSHAで固定する」は**未実施**。手順書のYAMLとの対応を読みやすく保つことを優先し、バージョンタグのまま Dependabot の更新に任せる。
+- 11-13で `docs/dev-commandlist.md` に `## Deploy / Rollback` を追加し、手動デプロイ・ロールバック・適用済みMigrationの確認コマンドをまとめた。
+
+---
+
+## 付録: 変更からデプロイまでのgit / gh操作
+
+STEP 11 の完成後、コードを変更するときの実際の手順。11-6 のブランチ保護により **`main` への直接pushはできない**（`git push origin main` は `GH006: Protected branch update failed` で拒否される）。すべての変更をブランチ → PR → CI → マージの順に流す。
+
+```text
+git switch -c ...  →  git commit  →  git push  →  gh pr create  →  [CI]  →  gh pr merge  →  [CI + Deploy]  →  本番反映
+                                                      ↑                        ↑
+                                              ここで初めてCIが動く      マージ＝mainへのpushでデプロイが動く
+```
+
+### 操作とCI/CDの対応早見表
+
+| 操作 | 起動するワークフロー | 何が起こるか |
+| --- | --- | --- |
+| `git switch -c <branch>` / `git commit` | なし | ローカルのみ。GitHubには何も伝わらない |
+| `git push origin <branch>`（PR未作成） | なし | `ci.yml` の `on:` は `pull_request` と `push: main` だけなので走らない |
+| `gh pr create` | CI | `Backend` / `Frontend` / `Docker build (backend)` / `Docker build (frontend)` |
+| PRブランチへの追加push | CI（再実行） | `concurrency` により、実行中の古いCIはキャンセルされる |
+| `gh pr merge`（＝ `main` へのpush） | CI と Deploy | Deploy: GHCRへpush → SSH → `alembic upgrade head` → `up -d` → スモークテスト |
+| Actionsタブの **Run workflow** | Deploy | `workflow_dispatch`。`main` の現在のHEADで手動デプロイ |
+| Dependabotの週次PR | CI | 依存・Actionの更新PR。マージすればDeployも走る |
+
+CIとDeployは**どちらも「mainへのpush」で起動するため並行して走る**。詳しくは「既知の制約」の「CIとデプロイは並行して走る」を参照。
+
+### 0. 事前準備（初回のみ）
+
+```bash
+# GitHub CLI の認証状態を確認し、未認証ならログインする
+gh auth status || gh auth login
+```
+
+### 1. mainを最新にしてブランチを切る
+
+```bash
+git switch main
+git pull --ff-only origin main
+
+# ブランチを作る
+git switch -c feat/message-search
+```
+
+ブランチ名は「種別/内容」で付ける。コミットのプレフィックスと揃えておくと後から追いやすい。
+
+| 種別 | 用途 | 例 |
+| --- | --- | --- |
+| `feat/` | 機能追加 | `feat/message-search` |
+| `fix/` | バグ修正 | `fix/csrf-cookie-expiry` |
+| `refactor/` | 挙動を変えない整理 | `refactor/split-auth-service` |
+| `ci/` | ワークフロー・CI設定 | `ci/add-markdownlint` |
+| `docs/` | ドキュメントのみ | `docs/step12-guide` |
+
+### 2. 実装し、ローカルでCIと同じチェックを回す
+
+CIで落ちてから直すより、手元で潰すほうが速い。CIが実行するのと同じコマンドを流す。
+
+```bash
+# backend/ で
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+uv run pytest --cov
+
+# frontend/ で
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+```
+
+イメージのビルドまで確認したいときは、CIの `docker-build` ジョブと同じものをローカルで作る。
+
+```bash
+docker compose --env-file ./backend/.env build backend caddy
+```
+
+### 3. コミットする
+
+コミットメッセージは Conventional Commits（`feat:` / `fix:` / `docs:` / `ci:` / `refactor:` / `style:` / `test:`）で書く。
+
+```bash
+# 何を含めるか確認してからステージする
+git status
+git add backend/src/web_practice/routers/messages.py backend/tests/routers/test_messages.py
+
+# ステージした内容を最終確認する
+git diff --staged
+
+git commit -m "feat(messages): add keyword search endpoint"
+```
+
+> このリポジトリでは `/smart-commit` スキルで、差分からコミットメッセージを生成させることもできる。
+
+### 4. pushしてPull Requestを作る
+
+```bash
+# 初回だけ -u で上流ブランチを設定する
+git push -u origin feat/message-search
+
+# コミットメッセージからタイトル・本文を埋めてPRを作る
+gh pr create --fill
+
+# タイトルと本文を明示する場合
+gh pr create --title "feat(messages): キーワード検索を追加" --body "メッセージ一覧にキーワード検索を追加した。"
+
+# まだ完成していないが結果だけ先に見たい場合
+gh pr create --draft --fill
+```
+
+**PRを作った瞬間にCIが起動する。** ブランチへpushしただけの段階では走らないので、早くCIを回したいときはDraft PRを先に作る。
+
+### 5. CIの結果を確認する
+
+```bash
+# 4つのチェックが出揃うまで追う（緑なら exit 0、赤なら exit 1）
+gh pr checks --watch
+
+# ブラウザでPR画面を開く
+gh pr view --web
+```
+
+```text
+NAME                       DESCRIPTION  ELAPSED  URL
+Backend                    pass         1m20s    https://github.com/.../runs/...
+Frontend                   pass         1m05s    https://github.com/.../runs/...
+Docker build (backend)     pass         2m10s    https://github.com/.../runs/...
+Docker build (frontend)    pass         3m42s    https://github.com/.../runs/...
+```
+
+落ちたときは、失敗したステップのログだけを取り出す。
+
+```bash
+# 直近の実行を一覧する
+gh run list --limit 5
+
+# 失敗したステップのログだけ表示する
+gh run view <run id> --log-failed
+```
+
+読み方の詳細は 11-3 の「失敗したときの読み方」と「トラブルシューティング」を参照。
+
+### 6. 指摘や失敗を直す
+
+修正コミットを積んで push すれば、そのたびにCIが再実行される（古い実行は自動でキャンセルされる）。
+
+```bash
+git add -u
+git commit -m "fix(messages): handle empty keyword"
+git push
+```
+
+`Require branches to be up to date before merging` を有効にしている場合、`main` が先に進むと再度取り込みが必要になる。
+
+```bash
+git fetch origin
+git rebase origin/main
+git push --force-with-lease
+```
+
+ブランチ保護の `Block force pushes` は `main` だけが対象なので、作業ブランチへの force push は可能。`--force` ではなく `--force-with-lease` を使い、他人のpushを消さないようにする。
+
+### 7. マージする
+
+```bash
+# 全チェックが緑か最終確認する
+gh pr checks
+
+# squashでマージし、ローカルとリモートの作業ブランチを削除する
+gh pr merge --squash --delete-branch
+```
+
+`--delete-branch` は**ローカルブランチも削除する**。ローカルリポジトリ内で実行した場合は、削除前に `main` へ自動で切り替わる。
+
+squashマージなので `main` には1コミットだけ積まれる。**そのコミットSHAがそのままGHCRのイメージタグになり、デプロイ対象になる。**
+
+### 8. デプロイを確認する
+
+マージ＝ `main` へのpushなので、`deploy.yml` が自動で起動する。
+
+```bash
+# Deployワークフローの実行を探す
+gh run list --workflow=deploy.yml --limit 3
+
+# 実行中のログを追う
+gh run watch <run id>
+```
+
+Environmentに Required reviewers を設定している場合、`deploy` ジョブは承認待ちで止まる。
+
+```bash
+# 承認ボタンのある画面をブラウザで開く
+gh run view <run id> --web
+```
+
+**Review deployments** → `production` にチェック → **Approve and deploy** で再開する（11-9・11-11 参照）。
+
+完了後の確認。
+
+```bash
+# ワークフロー側のスモークテストと同じ確認
+curl -i https://taph-lab.com/api/health
+curl -i https://taph-lab.com/api/db-health
+```
+
+サーバー側で実際に動いているイメージとMigrationを見る手順は、11-11 の「サーバー側の確認」および [docs/dev-commandlist.md](../dev-commandlist.md) の `Deploy / Rollback` にまとめてある。
+
+### 9. ローカルを片付ける
+
+`gh pr merge --delete-branch` を使った場合、ブランチの削除と `main` への切り替えは済んでいる。あとは `main` を最新にするだけ。
+
+```bash
+git switch main
+git pull --ff-only origin main
+```
+
+ブラウザ上でマージした場合や、作業ブランチが残っている場合は手動で片付ける。
+
+```bash
+# ローカルの作業ブランチを削除する
+git branch -d feat/message-search
+
+# リモートで消えたブランチの追跡情報を掃除する
+git fetch --prune origin
+```
+
+### Dependabotが作ったPRの扱い
+
+11-12 で `.github/dependabot.yml` を入れたので、毎週、依存とActionの更新PRが自動で作られる。**マージすればそのまま本番へデプロイされる**ため、他のPRと同じようにCIの結果で判断する。
+
+```bash
+# Dependabotが作ったPRを一覧する
+gh pr list --author "app/dependabot"
+
+# 個別にチェック状況を見る
+gh pr checks <PR番号>
+
+# 問題なければマージする
+gh pr merge <PR番号> --squash --delete-branch
+```
+
+`github-actions` の更新PRは `ci.yml` / `deploy.yml` 自体が書き換わる。特にデプロイ系のAction（`appleboy/ssh-action` など）はオプションが廃止されることがある（11-10 の `script_stop` の例）ので、マージ後の初回デプロイまで見届ける。
+
+### 失敗したときの再実行と切り戻し
+
+```bash
+# 失敗したジョブだけ再実行する（一時的なネットワークエラーなど）
+gh run rerun <run id> --failed
+
+# ワークフロー全体を再実行する
+gh run rerun <run id>
+
+# mainの現在のHEADでデプロイだけを手動実行する
+gh workflow run deploy.yml --ref main
+```
+
+本番に問題が出たときは、**まずVM上で直前のSHAへ戻して復旧させる**（11-11 の「ロールバック手順」）。
+
+```bash
+# VM上で実行
+make deploy TAG=<前のcommit sha>
+```
+
+復旧したら、GitHub側も同じ状態に揃えるためにrevert用のPRを出す。VM上の切り戻しだけで放置すると、`main` の内容と本番が食い違ったままになる。
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch -c revert/message-search
+
+# squashマージ後なら、打ち消したいのは main 上の1コミット
+git revert <打ち消すcommit sha>
+git push -u origin revert/message-search
+gh pr create --fill
+```
+
+DBのMigrationは自動では戻らない。戻す必要がある場合の手順は「既知の制約」の「Migrationのロールバックは自動化していない」を参照。
+
+### よく使う gh コマンド
+
+| コマンド | 用途 |
+| --- | --- |
+| `gh pr create --fill` | コミットメッセージからPRを作る |
+| `gh pr status` | 自分に関係するPRの状況をまとめて見る |
+| `gh pr checks --watch` | CIの結果が出揃うまで待つ |
+| `gh pr view --web` | PRをブラウザで開く |
+| `gh pr merge --squash --delete-branch` | squashマージしてブランチを削除する |
+| `gh run list --workflow=deploy.yml` | Deployワークフローの実行履歴を見る |
+| `gh run watch <run id>` | 実行中のワークフローを追う |
+| `gh run view <run id> --log-failed` | 失敗したステップのログだけ表示する |
+| `gh run rerun <run id> --failed` | 失敗したジョブだけ再実行する |
+| `gh workflow run deploy.yml --ref main` | デプロイを手動で起動する |
+| `gh browse --settings` | リポジトリのSettingsをブラウザで開く |
