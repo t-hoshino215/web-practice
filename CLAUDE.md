@@ -23,6 +23,8 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 11. CI/CD: GitHub Actions、テスト実行、イメージ作成、MigrationとOCIデプロイの自動化
 12. 運用基盤: PostgreSQLのBackup／Restore、ログ管理、ヘルスチェック、監視、通知
 
+STEP 11 までが完了している。現在の対象は STEP 12（運用基盤）。
+
 ## Tech Stack
 
 - バックエンド: FastAPI + Uvicorn
@@ -36,6 +38,10 @@ Webアプリケーション構築のテンプレートとしても利用でき�
   - テスト: vitest
   - リンター/フォーマッター: eslint + prettier
   - 型チェック: TypeScript (tsc)
+- CI/CD: GitHub Actions
+  - ワークフロー: `.github/workflows/ci.yml`（Lint・型チェック・テスト・イメージビルド検証）, `.github/workflows/deploy.yml`（GHCRへpush → OCI VMへデプロイ）
+  - コンテナレジストリ: GitHub Container Registry（GHCR）
+  - 依存更新: Dependabot（`.github/dependabot.yml`）
 
 ## Project Structure
 
@@ -60,6 +66,7 @@ Webアプリケーション構築のテンプレートとしても利用でき�
 ## Workflow
 
 - 機能追加・変更を依頼されたら、 `.claude/skills/dev-workflow` のフローに従って実装を行う
+- `main` への直接pushは禁止。変更はブランチ → PR → CI通過 → マージの順に進める（`main` へのマージで本番へ自動デプロイされる）
 - 可能な限りサブエージェントを並列で使用する
 - git の変更履歴・詳細の調査は、 `.claude/skills/git-inspect` を使用する
 - タスクが完了したら、変更内容のサマリーを表示し、最後に「 === タスク完了 === 」と伝える
