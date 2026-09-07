@@ -5,7 +5,7 @@
 # 依存のインストールとViteのビルドを行う。Nodeはこのステージにしか残らない
 # ----------------------------------------------
 
-FROM node:24-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 
 WORKDIR /app
 
