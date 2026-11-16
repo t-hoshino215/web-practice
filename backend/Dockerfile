@@ -5,7 +5,7 @@
 # 依存ファイルを先にビルドしてキャッシュすることで、ソースコードの変更があっても依存関係の再インストールを避ける
 # ----------------------------------------------
 
-FROM python:3.14-slim AS builder
+FROM python:3.15-slim AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.12.5 \
     /uv /uvx /bin/
@@ -34,7 +34,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Runtime stage
 # ----------------------------------------------
 
-FROM python:3.14-slim AS runtime
+FROM python:3.15-slim AS runtime
 
 WORKDIR /app
 
